@@ -1,40 +1,69 @@
 import streamlit as st
 import google.generativeai as genai
-from google.generativeai.types import RequestOptions
 
-st.set_page_config(page_title="KutiAİ v12", page_icon="🤖")
-st.title("🤖 KutiAİ v12 - Online")
+# --- 1. SAYFA AYARLARI VE TASARIM ---
+st.set_page_config(page_title="KutiAİ VIP", page_icon="🤖", layout="centered")
 
-if "GOOGLE_API_KEY" in st.secrets:
-    # API anahtarını yapılandır
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    
-    # İŞTE KRİTİK NOKTA: v1beta hatasından kaçmak için zorunlu ayar
-    # Bu ayar Google'a "beta versiyonu değil, kararlı versiyonu kullan" der.
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        generation_config={"speed_optimized": True}
-    )
-    # Bağlantı ayarlarını v1 olarak zorluyoruz
-    request_options = RequestOptions(api_version="v1")
+# Şık bir tasarım için CSS dokunuşu
+st.markdown("""
+    <style>
+    .main { background-color: #f5f7f9; }
+    .stChatMessage { border-radius: 15px; margin-bottom: 10px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.title("🤖 KutiAİ VIP Asistan")
+st.caption("Gemini 1.5 Flash ile Güçlendirilmiş En Hızlı Versiyon")
+st.divider()
+
+# --- 2. GÜVENLİ API BAĞLANTISI ---
+# Streamlit Secrets üzerinden anahtarı çeker
+api_key = st.secrets.get("GOOGLE_API_KEY")
+
+if api_key:
+    genai.configure(api_key=api_key)
+    # Hata veren 'gemini-pro' yerine en güncel 'gemini-1.5-flash' modelini kullanıyoruz
+    model = genai.GenerativeModel("gemini-1.5-flash")
 else:
-    st.error("Secrets kısmına API anahtarını ekle!")
+    st.error("⚠️ API Anahtarı bulunamadı! Lütfen Streamlit Settings -> Secrets kısmına GOOGLE_API_KEY ekleyin.")
     st.stop()
 
+# --- 3. SOHBET HAFIZASI ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-for m in st.session_state.messages:
-    with st.chat_message(m["role"]): st.markdown(m["content"])
+# Eski mesajları ekrana yansıt
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-if p := st.chat_input("Naber kanka?"):
-    st.session_state.messages.append({"role": "user", "content": p})
-    with st.chat_message("user"): st.markdown(p)
+# --- 4. SOHBET MANTIĞI ---
+if prompt := st.chat_input("KutiAİ'ye bir şeyler sorun..."):
+    # Kullanıcı mesajını ekle
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Yapay zekanın yanıt üretme süreci
     with st.chat_message("assistant"):
-        try:
-            # Buradaki request_options o 404 hatasını bypass eder
-            response = model.generate_content(p, request_options=request_options)
-            st.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
-        except Exception as e:
-            st.error(f"Sistem Hatası: {str(e)}")
+        with st.spinner("KutiAİ düşünüyor..."):
+            try:
+                # Yeni model ile yanıt üretme
+                response = model.generate_content(prompt)
+                full_response = response.text
+                
+                st.markdown(full_response)
+                # Yanıtı hafızaya kaydet
+                st.session_state.messages.append({"role": "assistant", "content": full_response})
+            except Exception as e:
+                st.error(f"Bir hata oluştu: {str(e)}")
+
+# --- 5. YAN MENÜ ---
+with st.sidebar:
+    st.title("⚙️ Kontrol Paneli")
+    if st.button("Sohbeti Temizle"):
+        st.session_state.messages = []
+        st.rerun()
+    st.markdown("---")
+    st.write("🚀 **KutiAİ v1.1**")
+    st.write("Geliştirici: Kutay")
