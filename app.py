@@ -1,8 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
-from google.generativeai.types import RequestOptions
 
-st.set_page_config(page_title="KutiAİ Özel", page_icon="🔐", layout="centered")
+st.set_page_config(page_title="KutiAİ Özel", page_icon="🔐")
 
 # --- ŞİFRE KONTROLÜ ---
 def check_password():
@@ -14,27 +13,18 @@ def check_password():
             st.session_state["password_correct"] = False
 
     if "password_correct" not in st.session_state:
-        st.title("🔒 KutiAİ Sistem Girişi")
+        st.title("🔒 KutiAİ Giriş")
         st.text_input("Giriş Şifresi:", type="password", on_change=password_entered, key="password")
         return False
-    elif not st.session_state["password_correct"]:
-        st.text_input("Hatalı Şifre! Tekrar Dene:", type="password", on_change=password_entered, key="password")
-        st.error("Erişim Reddedildi.")
-        return False
-    else:
-        return True
+    return True
 
-# Şifre doğruysa asistanı aç
 if check_password():
     st.title("🤖 KutiAİ v13.0")
-    st.caption("Sadece Yusuf Tatlıcak'a özel güvenli bağlantı.")
-
-    # API Yapılandırması
+    
     if "GOOGLE_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        # 404 hatasını aşmak için v1 zorlaması
-        model = genai.GenerativeModel(model_name="gemini-1.5-flash")
-        request_options = RequestOptions(api_version="v1")
+        # En güncel ve hatasız model çağırma yöntemi
+        model = genai.GenerativeModel('gemini-1.5-flash')
     else:
         st.error("Secrets kısmına API anahtarını ekle!")
         st.stop()
@@ -45,15 +35,14 @@ if check_password():
     for m in st.session_state.messages:
         with st.chat_message(m["role"]): st.markdown(m["content"])
 
-    if p := st.chat_input("Mesajını buraya bırak..."):
+    if p := st.chat_input("Mesajını yaz..."):
         st.session_state.messages.append({"role": "user", "content": p})
         with st.chat_message("user"): st.markdown(p)
-        
         with st.chat_message("assistant"):
             try:
-                # request_options=request_options kısmı 404'ü engeller
-                response = model.generate_content(p, request_options=request_options)
+                # Karmaşık ayarları çıkardık, direkt yanıt alıyoruz
+                response = model.generate_content(p)
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
-                st.error(f"Sistem Hatası: {str(e)}")
+                st.error(f"Hata: {str(e)}")
