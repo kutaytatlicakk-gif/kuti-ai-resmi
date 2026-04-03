@@ -5,13 +5,12 @@ import os
 import threading
 from datetime import datetime
 
-# --- GEMINI YAPILANDIRMASI ---
-# Buraya kendi API anahtarını yapıştırmayı unutma!
-API_KEY = "AIzaSyDJBlDIHija8IxAPL8AuQkn-4NahQZs1qE"
+# --- YENİ API ANAHTARI ENTEGRASYONU ---
+API_KEY = "AIzaSyAy4UAzQafV4GmwdNo_w6tS3dmzirD0P4Q"
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-pro')
 
-# --- GÖRSEL AYARLAR ---
+# --- GÖRSEL TEMA ---
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
 
@@ -19,107 +18,110 @@ class KutiAI(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("KUTI-AI v15.0 | SİBER ASİSTAN")
+        self.title("KUTI-AI v15.0 | SİBER HAFIZA SİSTEMİ")
         self.geometry("1000x650")
 
-        # Geçmişi yükle
-        self.history_file = "kuti_history.json"
-        self.messages = self.load_history()
+        # Geçmiş Dosyası Kontrolü
+        self.history_file = "kuti_data.json"
+        self.history_data = self.load_history()
 
-        # --- SOL PANEL (SIDEBAR) ---
-        self.sidebar = ctk.CTkFrame(self, width=220, corner_radius=0)
+        # --- SIDEBAR (SOL PANEL) ---
+        self.sidebar = ctk.CTkFrame(self, width=240, corner_radius=0)
         self.sidebar.pack(side="left", fill="y", padx=5, pady=5)
 
-        self.logo = ctk.CTkLabel(self.sidebar, text="⚡ KUTI-AI PRO", font=ctk.CTkFont(size=22, weight="bold"))
+        self.logo = ctk.CTkLabel(self.sidebar, text="KUTI-AI PRO", font=ctk.CTkFont(size=22, weight="bold"))
         self.logo.pack(pady=20)
 
-        # Sistem Durum Paneli
-        self.status_frame = ctk.CTkFrame(self.sidebar, fg_color="#1a1a1a")
-        self.status_frame.pack(fill="x", padx=10, pady=10)
-        self.status_label = ctk.CTkLabel(self.status_frame, text="SİSTEM: AKTİF\nAPI: BAĞLI", font=("Fixedsys", 12), text_color="#00FF00")
-        self.status_label.pack(pady=10)
+        # Durum Göstergesi
+        self.status_box = ctk.CTkFrame(self.sidebar, fg_color="#0f0f0f", height=60)
+        self.status_box.pack(fill="x", padx=15, pady=10)
+        self.status_text = ctk.CTkLabel(self.status_box, text="● SİSTEM: ÇEVRİMİÇİ\n● MOD: HAFIZA AKTİF", 
+                                        font=("Fixedsys", 11), text_color="#00FF00")
+        self.status_text.pack(pady=10)
 
         # Geçmiş Listesi
-        self.history_label = ctk.CTkLabel(self.sidebar, text="Sohbet Kayıtları", font=("Fixedsys", 14))
-        self.history_label.pack(pady=(20, 5))
-        
-        self.history_display = ctk.CTkTextbox(self.sidebar, width=200, height=300, font=("Segoe UI", 11))
-        self.history_display.pack(pady=10, padx=10)
-        self.update_history_display()
+        ctk.CTkLabel(self.sidebar, text="Sohbet Geçmişi", font=("Fixedsys", 14)).pack(pady=(15, 5))
+        self.history_list = ctk.CTkTextbox(self.sidebar, width=210, height=320, font=("Segoe UI", 11), fg_color="#1a1a1a")
+        self.history_list.pack(pady=5, padx=10)
+        self.refresh_history_view()
 
-        # Temizleme Butonu
-        self.clear_btn = ctk.CTkButton(self.sidebar, text="GEÇMİŞİ SIFIRLA", fg_color="#8B0000", hover_color="#FF0000", command=self.clear_history)
+        # Temizle Butonu
+        self.clear_btn = ctk.CTkButton(self.sidebar, text="HAFIZAYI SİL", fg_color="#660000", 
+                                        hover_color="#AA0000", command=self.clear_all_data)
         self.clear_btn.pack(side="bottom", pady=20)
 
-        # --- ANA SOHBET ALANI ---
-        self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.main_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+        # --- ANA EKRAN ---
+        self.main_area = ctk.CTkFrame(self, fg_color="transparent")
+        self.main_area.pack(side="right", fill="both", expand=True, padx=10, pady=10)
 
-        self.chat_box = ctk.CTkTextbox(self.main_frame, font=("Segoe UI", 14))
-        self.chat_box.pack(pady=10, padx=10, fill="both", expand=True)
-        self.chat_box.insert("end", "KutiAI: Merhaba Yusuf! Bugün hangi projeyi geliştiriyoruz?\n\n")
+        self.chat_screen = ctk.CTkTextbox(self.main_area, font=("Segoe UI", 14), spacing2=5)
+        self.chat_screen.pack(pady=10, padx=10, fill="both", expand=True)
+        self.chat_screen.insert("end", "KutiAI: Sistem başlatıldı. Merhaba Yusuf, seni dinliyorum...\n\n")
 
-        # Giriş Alanı ve Buton
-        self.input_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.input_frame.pack(fill="x", side="bottom", pady=10)
+        # Giriş Çubuğu
+        self.bottom_bar = ctk.CTkFrame(self.main_area, fg_color="transparent")
+        self.bottom_bar.pack(fill="x", side="bottom", pady=10)
 
-        self.user_input = ctk.CTkEntry(self.input_frame, placeholder_text="Mesajınızı yazın...", height=40)
-        self.user_input.pack(side="left", fill="x", expand=True, padx=(10, 5))
-        self.user_input.bind("<Return>", lambda event: self.send_message())
+        self.entry = ctk.CTkEntry(self.bottom_bar, placeholder_text="Siber komut veya mesaj girin...", height=45)
+        self.entry.pack(side="left", fill="x", expand=True, padx=(10, 5))
+        self.entry.bind("<Return>", lambda e: self.process_chat())
 
-        self.send_btn = ctk.CTkButton(self.input_frame, text="GÖNDER", width=100, height=40, command=self.send_message)
-        self.send_btn.pack(side="right", padx=(5, 10))
+        self.btn = ctk.CTkButton(self.bottom_bar, text="GÖNDER", width=110, height=45, command=self.process_chat)
+        self.btn.pack(side="right", padx=(5, 10))
 
     def load_history(self):
         if os.path.exists(self.history_file):
-            with open(self.history_file, "r", encoding="utf-8") as f:
-                return json.load(f)
+            try:
+                with open(self.history_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except: return []
         return []
 
-    def save_history(self, role, text):
-        self.messages.append({"role": role, "text": text, "time": datetime.now().strftime("%H:%M")})
+    def save_to_history(self, user_msg, ai_msg):
+        entry = {
+            "time": datetime.now().strftime("%H:%M"),
+            "user": user_msg[:30] + "...",
+            "full_user": user_msg,
+            "full_ai": ai_msg
+        }
+        self.history_data.append(entry)
         with open(self.history_file, "w", encoding="utf-8") as f:
-            json.dump(self.messages, f, ensure_ascii=False, indent=4)
-        self.update_history_display()
+            json.dump(self.history_data, f, ensure_ascii=False, indent=4)
+        self.refresh_history_view()
 
-    def update_history_display(self):
-        self.history_display.configure(state="normal")
-        self.history_display.delete("1.0", "end")
-        for msg in self.messages[-10:]: # Son 10 mesajın özetini göster
-            prefix = "Siz: " if msg["role"] == "user" else "AI: "
-            self.history_display.insert("end", f"{prefix}{msg['text'][:20]}...\n")
-        self.history_display.configure(state="disabled")
+    def refresh_history_view(self):
+        self.history_list.configure(state="normal")
+        self.history_list.delete("1.0", "end")
+        for item in reversed(self.history_data[-15:]): # Son 15 kaydı göster
+            self.history_list.insert("end", f"[{item['time']}] {item['user']}\n---\n")
+        self.history_list.configure(state="disabled")
 
-    def clear_history(self):
-        self.messages = []
+    def clear_all_data(self):
+        self.history_data = []
         if os.path.exists(self.history_file):
             os.remove(self.history_file)
-        self.chat_box.delete("1.0", "end")
-        self.history_display.configure(state="normal")
-        self.history_display.delete("1.0", "end")
-        self.history_display.configure(state="disabled")
-        self.chat_box.insert("end", "Sistem sıfırlandı. Yeni oturum başladı.\n\n")
+        self.chat_screen.delete("1.0", "end")
+        self.chat_screen.insert("end", ">> SİSTEM TEMİZLENDİ. YENİ OTURUM.\n\n")
+        self.refresh_history_view()
 
-    def send_message(self):
-        user_text = self.user_input.get()
-        if not user_text.strip(): return
+    def process_chat(self):
+        msg = self.entry.get()
+        if not msg.strip(): return
+        
+        self.chat_screen.insert("end", f"Yusuf: {msg}\n")
+        self.entry.delete(0, "end")
+        
+        threading.Thread(target=self.call_gemini, args=(msg,), daemon=True).start()
 
-        self.chat_box.insert("end", f"Yusuf: {user_text}\n")
-        self.user_input.delete(0, "end")
-        self.save_history("user", user_text)
-
-        # Gemini cevabını arka planda al (Donma yapmaması için)
-        threading.Thread(target=self.get_ai_response, args=(user_text,), daemon=True).start()
-
-    def get_ai_response(self, prompt):
+    def call_gemini(self, prompt):
         try:
             response = model.generate_content(prompt)
-            ai_text = response.text
-            self.chat_box.insert("end", f"KutiAI: {ai_text}\n\n")
-            self.chat_box.see("end")
-            self.save_history("bot", ai_text)
+            answer = response.text
+            self.chat_screen.insert("end", f"KutiAI: {answer}\n\n")
+            self.chat_screen.see("end")
+            self.save_to_history(prompt, answer)
         except Exception as e:
-            self.chat_box.insert("end", f"SİSTEM HATASI: {str(e)}\n\n")
+            self.chat_screen.insert("end", f"HATA: Bağlantı kurulamadı. {e}\n\n")
 
 if __name__ == "__main__":
     app = KutiAI()
