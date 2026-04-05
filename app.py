@@ -4,111 +4,66 @@ import json
 import os
 from datetime import datetime
 
-# --- 1. SİSTEM AYARLARI ---
+# --- SİSTEM AYARLARI ---
 st.set_page_config(page_title="KutiAI PRO v18.0", page_icon="⚡", layout="wide")
 
-# API Anahtarı
-API_KEY = "AIzaSyDrlWEmJ6haheLyVMDLvftNt7ZxQS26c1o"
-genai.configure(api_key=API_KEY)
+# API Anahtarı Kasadan Çekiliyor
+if "GEMINI_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+else:
+    st.error("Lütfen Streamlit Secrets kısmına API anahtarını ekle!")
+    st.stop()
 
-# --- 2. KIRILMAZ MODEL MOTORU (404 HATASINA SON) ---
-@st.cache_resource
-def siber_model_bagla():
-    # Google sunucularından anlık çalışan modellerin listesini çeker
-    calisan_modeller = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-    
-    # 1. Öncelik: En güncel ve hızlı olan Flash modelini bul
-    for m_adi in calisan_modeller:
-        if "flash" in m_adi:
-            return genai.GenerativeModel(m_adi)
-            
-    # 2. Öncelik: Bulamazsa, çalışan listedeki ilk modeli al (Böylece asla 404 vermez)
-    return genai.GenerativeModel(calisan_modeller[0])
+# Model Bağlantısı
+model = genai.GenerativeModel('gemini-1.5-flash')
 
-# Asistanı canlı modele bağla
-model = siber_model_bagla()
-
-# --- 3. VERİTABANI (KLASÖR VE HAFIZA) ---
+# Klasörleme Sistemi
 if not os.path.exists("chats"):
     os.makedirs("chats")
 
+# Hafıza Başlatma
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "current_chat_id" not in st.session_state:
-    st.session_state.current_chat_id = None
+if "chat_id" not in st.session_state:
+    st.session_state.chat_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# --- 4. SOHBET KAYIT SİSTEMİ ---
-def sohbeti_kaydet():
-    if st.session_state.messages:
-        if st.session_state.current_chat_id is None:
-            st.session_state.current_chat_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        file_path = f"chats/{st.session_state.current_chat_id}.json"
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(st.session_state.messages, f, ensure_ascii=False)
-
-def sohbeti_yukle(chat_id):
-    file_path = f"chats/{chat_id}.json"
-    if os.path.exists(file_path):
-        with open(file_path, "r", encoding="utf-8") as f:
-            st.session_state.messages = json.load(f)
-            st.session_state.current_chat_id = chat_id
-
-# --- 5. YAN PANEL (PROFESYONEL LİSTE) ---
+# --- YAN PANEL (GEÇMİŞ LİSTESİ) ---
 with st.sidebar:
-    st.title("⚡ KUTI-AI PRO")
-    
-    if st.button("➕ Yeni Sohbet", use_container_width=True):
-        if st.session_state.messages:
-            sohbeti_kaydet()
+    st.title("⚡ KutiAI Geçmişi")
+    if st.button("➕ Yeni Sohbet Başlat", use_container_width=True):
         st.session_state.messages = []
-        st.session_state.current_chat_id = None
+        st.session_state.chat_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         st.rerun()
-
-    st.markdown("---")
-    st.subheader("💬 Sohbet Geçmişi")
     
-    # Kaydedilen sohbet dosyalarını bul ve listele
+    st.write("---")
+    # Kayıtlı dosyaları listele (İstediğin sol liste burası)
     files = sorted([f for f in os.listdir("chats") if f.endswith(".json")], reverse=True)
-    
     for f in files:
         cid = f.replace(".json", "")
-        # Başlık olarak sohbetin ilk mesajını al
-        try:
-            with open(f"chats/{f}", "r", encoding="utf-8") as file_data:
-                chat_data = json.load(file_data)
-                label = chat_data[0]["content"][:25] + "..." if chat_data else cid
-        except:
-            label = cid
-            
-        # Aktif sohbeti işaretle
-        is_active = "▶ " if st.session_state.current_chat_id == cid else ""
-        if st.button(f"{is_active}{label}", key=cid, use_container_width=True):
-            sohbeti_yukle(cid)
+        if st.button(f"💬 {cid[:13]}", key=cid, use_container_width=True):
+            with open(f"chats/{f}", "r", encoding="utf-8") as f_in:
+                st.session_state.messages = json.load(f_in)
+                st.session_state.chat_id = cid
             st.rerun()
 
-# --- 6. ANA SOHBET EKRANI ---
+# --- ANA EKRAN ---
 st.title("🤖 KutiAI Siber Asistan")
-st.caption("Kesintisiz Bağlantı | Oto-Model Seçimi Aktif")
 
-# Hafızadaki mesajları ekrana bas
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+for m in st.session_state.messages:
+    with st.chat_message(m["role"]):
+        st.markdown(m["content"])
 
-# Yeni komut alma
-if prompt := st.chat_input("Yusuf, sistem hazır. Komutunuz nedir?"):
-    # Senin mesajın
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    # Yapay zeka cevabı
+if p := st.chat_input("Mesajınızı yazın..."):
+    st.session_state.messages.append({"role": "user", "content": p})
+    with st.chat_message("user"): st.markdown(p)
+    
     with st.chat_message("assistant"):
         try:
-            response = model.generate_content(prompt)
-            st.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
-            sohbeti_kaydet() # Konuşmayı anında yedekle
+            r = model.generate_content(p)
+            st.markdown(r.text)
+            st.session_state.messages.append({"role": "assistant", "content": r.text})
+            # Otomatik Kaydet
+            with open(f"chats/{st.session_state.chat_id}.json", "w", encoding="utf-8") as f_out:
+                json.dump(st.session_state.messages, f_out, ensure_ascii=False)
         except Exception as e:
-            st.error(f"Sistem Hatası (Google API): {e}")
+            st.error(f"Hata: {e}")
