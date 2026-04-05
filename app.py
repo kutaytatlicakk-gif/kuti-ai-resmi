@@ -165,7 +165,7 @@ elif page == "🛠️ Ayarlar & Haklarım":
     """, unsafe_allow_html=True)
     
     st.divider()
-    st.write("✅ **Model:** KUTAY 1.5 FLASH (Google Altyapılı)")
+    st.write("✅ **Model:** KUTAY 1.5 FLASH")
     st.write("✅ **Güvenlik Skoru:** %100")
     st.success("Sistem Yusuf Tatlıcak için mükemmel hale getirildi.")
 
