@@ -89,17 +89,25 @@ if secim == "💬 Sohbet":
     st.markdown(f"<h2 style='text-align: center; color: #1E1E1E;'>🤖 Kutay Siber Asistan</h2>", unsafe_allow_html=True)
     st.markdown(f"<p style='text-align: center; color: #757575;'>Geliştirici: Yusuf Tatlıcak</p>", unsafe_allow_html=True)
 
-    # Mesajları Görüntüle
+    # Mesajları Görüntüle: Eski mesajlar da yeni PP'leri kullanacak
     for m in st.session_state.mesajlar:
-        with st.chat_message(m["role"]):
-            st.markdown(m["content"])
+        if m["role"] == "user":
+            # KULLANICI MESAJI: Şık Geliştirici Portresi URL'si
+            with st.chat_message("user", avatar="https://raw.githubusercontent.com/sahandm/pydroid-ai/main/user_pp.png"):
+                st.markdown(m["content"])
+        else:
+            # ASİSTAN MESAJI: Modern Siber Asistan Portresi URL'si
+            with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sahandm/pydroid-ai/main/ai_pp.png"):
+                st.markdown(m["content"])
 
     # Kullanıcı Yazınca
     if soru := st.chat_input("Bir şeyler yaz..."):
         st.session_state.mesajlar.append({"role": "user", "content": soru})
-        with st.chat_message("user"): st.markdown(soru)
+        # KULLANICI YENİ MESAJI: Gerçekçi Geliştirici Portresi URL'si
+        with st.chat_message("user", avatar="https://raw.githubusercontent.com/sahandm/pydroid-ai/main/user_pp.png"): st.markdown(soru)
         
-        with st.chat_message("assistant"):
+        # ASİSTAN YENİ MESAJI: Siber Asistan Portresi URL'si
+        with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sahandm/pydroid-ai/main/ai_pp.png"):
             try:
                 cevap = model.generate_content(soru)
                 st.markdown(cevap.text)
@@ -114,7 +122,7 @@ if secim == "💬 Sohbet":
 elif secim == "⚙️ Ayarlar":
     st.title("⚙️ Sistem Ayarları")
     st.write(f"**Yazılım Sahibi:** Yusuf Tatlıcak")
-    st.write(f"**Versiyon:** v21.0 Platinum")
+    st.write(f"**Versiyon:** v21.0 Gold Edition")
     st.write(f"**Bağlı Model:** {model.model_name}")
     if st.button("🗑️ Tüm Hafızayı Sil"):
         for f in os.listdir(KAYIT_YOLU): os.remove(os.path.join(KAYIT_YOLU, f))
