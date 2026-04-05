@@ -4,119 +4,129 @@ import json
 import os
 from datetime import datetime
 
-# --- 1. MARKA VE SAYFA AYARLARI ---
+# --- 1. MARKA VE BEYAZ TEMA AYARLARI ---
 st.set_page_config(page_title="KUTAY AI", page_icon="💎", layout="wide")
 
-# CSS ile Google Gemini stili menü ve tasarım
+# CSS: Arka planı bembeyaz, yazıları simsiyah ve butonları şık yapar
 st.markdown("""
     <style>
-    .stApp { background-color: #0E1117; color: white; }
-    .sidebar .sidebar-content { background-image: linear-gradient(#2e3136,#2e3136); }
-    .stButton>button { width: 100%; border-radius: 20px; border: 1px solid #3e4147; }
+    .stApp { background-color: #FFFFFF; color: #1E1E1E; }
+    [data-testid="stSidebar"] { background-color: #F8F9FA; border-right: 1px solid #E0E0E0; }
+    .stButton>button { width: 100%; border-radius: 10px; background-color: #FFFFFF; color: #1E1E1E; border: 1px solid #D1D1D1; }
+    .stButton>button:hover { border-color: #007BFF; color: #007BFF; }
+    .stTextInput>div>div>input { background-color: #F1F3F4; color: #1E1E1E; border-radius: 20px; }
     footer {visibility: hidden;}
-    .reportview-container .main footer {visibility: hidden;}
+    /* Sohbet balonlarını netleştirir */
+    [data-testid="stChatMessage"] { background-color: #F1F3F4; border-radius: 15px; margin-bottom: 10px; color: #1E1E1E; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. GÜVENLİK VE API (KASA SİSTEMİ) ---
+# --- 2. GÜVENLİK (GİZLİ KASA) ---
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 else:
-    st.error("⚠️ SİSTEM DURDURULDU: API Anahtarı Secrets kısmında bulunamadı!")
+    st.error("⚠️ HATA: API Anahtarı Secrets kısmında bulunamadı!")
     st.stop()
 
-# --- 3. DİNAMİK MODEL MOTORU (404 HATASINI BİTİREN KISIM) ---
+# --- 3. AKILLI MODEL MOTORU (404 HATASINI ENGELLER) ---
 @st.cache_resource
-def model_bagla():
+def model_getir():
     try:
-        # Google'ın o an sunduğu çalışan modelleri otomatik tara
         modeller = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        # En hızlı ve güncel olanı seç (Flash 1.5 öncelikli)
+        # En güncel modelleri öncelikli olarak tarar
         for m in modeller:
             if "1.5-flash" in m: return genai.GenerativeModel(m)
         return genai.GenerativeModel(modeller[0])
     except Exception as e:
-        st.error(f"Model Motoru Başlatılamadı: {e}")
+        st.error(f"Sistem Başlatılamadı: {e}")
         st.stop()
 
-model = model_bagla()
+model = model_getir()
 
-# --- 4. VERİ YÖNETİMİ ---
-CHAT_DIR = "arsiv"
-if not os.path.exists(CHAT_DIR): os.makedirs(CHAT_DIR)
+# --- 4. ARŞİV VE HAFIZA SİSTEMİ ---
+KAYIT_YOLU = "sohbet_arsivi"
+if not os.path.exists(KAYIT_YOLU): os.makedirs(KAYIT_YOLU)
 
 if "mesajlar" not in st.session_state: st.session_state.mesajlar = []
-if "session_id" not in st.session_state: st.session_state.session_id = datetime.now().strftime("%Y%m%d_%H%M")
+if "aktif_id" not in st.session_state: st.session_state.aktif_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# --- 5. PROFESYONEL YAN MENÜ (FOTOĞRAFTAKİ GİBİ) ---
+# --- 5. GELİŞMİŞ YAN MENÜ (KONU BAŞLIKLI GEÇMİŞ) ---
 with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/6819/6819101.png", width=50)
     st.title("💎 KUTAY")
     
-    # Menü Seçenekleri
-    menu = st.radio("", ["💬 Sohbet", "⚙️ Ayarlar", "⚖️ Kullanım Hakları"])
-    
+    secim = st.radio("", ["💬 Sohbet", "⚙️ Ayarlar", "⚖️ Haklar"])
     st.write("---")
     
     if st.button("➕ Yeni Sohbet"):
         st.session_state.mesajlar = []
-        st.session_state.session_id = datetime.now().strftime("%Y%m%d_%H%M")
+        st.session_state.aktif_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         st.rerun()
 
-    st.subheader("🕒 Sohbetler")
-    # Kayıtlı dosyaları listele
-    files = sorted([f for f in os.listdir(CHAT_DIR) if f.endswith(".json")], reverse=True)
-    for f in files:
-        cid = f.replace(".json", "")
-        if st.button(f"📄 {cid}", key=cid):
-            with open(f"{CHAT_DIR}/{f}", "r", encoding="utf-8") as fin:
-                st.session_state.mesajlar = json.load(fin)
-                st.session_state.session_id = cid
+    st.subheader("🕒 Geçmiş Sohbetler")
+    
+    # Arşivdeki dosyaları tara ve içindeki İLK MESAJI başlık yap
+    dosyalar = sorted([f for f in os.listdir(KAYIT_YOLU) if f.endswith(".json")], reverse=True)
+    for dosya in dosyalar:
+        dosya_yolu = os.path.join(KAYIT_YOLU, dosya)
+        try:
+            with open(dosya_yolu, "r", encoding="utf-8") as f:
+                veriler = json.load(f)
+                # Tarih yerine ilk mesajın ilk 25 karakterini başlık yap
+                baslik = veriler[0]["content"][:25] + "..." if veriler else dosya
+        except:
+            baslik = "Boş Sohbet"
+            
+        if st.button(f"💬 {baslik}", key=dosya):
+            with open(dosya_yolu, "r", encoding="utf-8") as f_yukle:
+                st.session_state.mesajlar = json.load(f_yukle)
+                st.session_state.aktif_id = dosya.replace(".json", "")
             st.rerun()
 
 # --- 6. SAYFA İÇERİKLERİ ---
 
-if menu == "💬 Sohbet":
-    st.title("🤖 Kutay Siber Asistan")
-    st.caption("Yusuf Tatlıcak Tarafından Geliştirilen Özel Yapay Zeka")
+if secim == "💬 Sohbet":
+    st.markdown(f"<h2 style='text-align: center; color: #1E1E1E;'>🤖 Kutay Siber Asistan</h2>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: center; color: #757575;'>Geliştirici: Yusuf Tatlıcak</p>", unsafe_allow_html=True)
 
+    # Mesajları Görüntüle
     for m in st.session_state.mesajlar:
-        with st.chat_message(m["role"]): st.markdown(m["content"])
+        with st.chat_message(m["role"]):
+            st.markdown(m["content"])
 
-    if p := st.chat_input("Kutay'a bir mesaj gönder..."):
-        st.session_state.mesajlar.append({"role": "user", "content": p})
-        with st.chat_message("user"): st.markdown(p)
+    # Kullanıcı Yazınca
+    if soru := st.chat_input("Bir şeyler yaz..."):
+        st.session_state.mesajlar.append({"role": "user", "content": soru})
+        with st.chat_message("user"): st.markdown(soru)
         
         with st.chat_message("assistant"):
             try:
-                r = model.generate_content(p)
-                st.markdown(r.text)
-                st.session_state.mesajlar.append({"role": "assistant", "content": r.text})
-                # Otomatik Yedekle
-                with open(f"{CHAT_DIR}/{st.session_state.session_id}.json", "w", encoding="utf-8") as fout:
-                    json.dump(st.session_state.mesajlar, fout, ensure_ascii=False)
+                cevap = model.generate_content(soru)
+                st.markdown(cevap.text)
+                st.session_state.mesajlar.append({"role": "assistant", "content": cevap.text})
+                
+                # Saniyeler içinde kaydet
+                with open(f"{KAYIT_YOLU}/{st.session_state.aktif_id}.json", "w", encoding="utf-8") as f_kayit:
+                    json.dump(st.session_state.mesajlar, f_kayit, ensure_ascii=False)
             except Exception as e:
-                st.error(f"Bağlantı Kesildi: {e}")
+                st.error(f"Bağlantı Sorunu: {e}")
 
-elif menu == "⚙️ Ayarlar":
+elif secim == "⚙️ Ayarlar":
     st.title("⚙️ Sistem Ayarları")
-    st.write("---")
-    st.write(f"**Aktif Model:** {model.model_name}")
-    st.write("**Geliştirici:** Yusuf Tatlıcak")
-    st.write("**Sürüm:** v20.0 Gold Edition")
-    st.color_picker("Arayüz Rengi Seç (Yakında)", "#00f9ff")
-    if st.button("Tüm Geçmişi Temizle"):
-        for f in os.listdir(CHAT_DIR): os.remove(os.path.join(CHAT_DIR, f))
-        st.success("Tüm veriler silindi.")
+    st.write(f"**Yazılım Sahibi:** Yusuf Tatlıcak")
+    st.write(f"**Versiyon:** v21.0 Platinum")
+    st.write(f"**Bağlı Model:** {model.model_name}")
+    if st.button("🗑️ Tüm Hafızayı Sil"):
+        for f in os.listdir(KAYIT_YOLU): os.remove(os.path.join(KAYIT_YOLU, f))
+        st.success("Tüm geçmiş temizlendi!")
 
-elif menu == "⚖️ Kullanım Hakları":
-    st.title("⚖️ Telif ve Lisans Hakları")
-    st.write("---")
-    st.warning("Bu yazılımın tüm hakları **Yusuf Tatlıcak**'a aittir.")
+elif secim == "⚖️ Haklar":
+    st.title("⚖️ Kullanım ve Telif Hakları")
+    st.info("Bu proje tamamen Yusuf Tatlıcak'a aittir.")
     st.markdown("""
-    ### 🛡️ Yasal Uyarı:
-    * Bu kodun izinsiz kopyalanması, paylaşılması veya başka isimle yayınlanması yasaktır.
-    * **KUTAY AI** ismi ve logosu marka koruması altındadır.
-    * Açık kaynak olarak paylaşılsa dahi 'Geliştirici: Yusuf Tatlıcak' ibaresi kaldırılamaz.
+    1. **Mülkiyet:** Bu yazılımın kod yapısı ve tasarımı Yusuf Tatlıcak adına tescillidir.
+    2. **Kopyalama:** Kodların izinsiz kopyalanması veya başka projelerde 'Kutay' ismi silinerek kullanılması yasaktır.
+    3. **Güvenlik:** API anahtarı güvenliği Streamlit Secrets ile sağlanmaktadır.
     
-    **© 2026 Kutay Software - Tüm Hakları Saklıdır.**
+    **© 2026 KUTAY Software. Tüm Hakları Saklıdır.**
     """)
