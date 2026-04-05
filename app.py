@@ -6,7 +6,7 @@ import time
 st.set_page_config(page_title="KUTAY AI", page_icon="🤖", layout="wide")
 
 # Senin paylaştığın API Anahtarı buraya eklendi
-API_KEY = "AIzaSyAYeaejVesg2ik5ESyUdQFvyYHwW4ISg_I"
+API_KEY = "AIzaSyAi-jLhZ8ehae5ZH2HjpB_pI6pllsyU27k"
 
 try:
     genai.configure(api_key=API_KEY)
