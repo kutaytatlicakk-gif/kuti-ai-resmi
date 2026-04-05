@@ -7,7 +7,6 @@ from datetime import datetime
 # --- 1. MARKA VE TASARIM AYARLARI ---
 st.set_page_config(page_title="KUTAY AI", page_icon="💎", layout="wide")
 
-# CSS: Su mavisi mesaj balonları ve profesyonel görünüm
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; color: #1E1E1E; }
@@ -29,20 +28,29 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. GÜVENLİK VE MODEL MOTORU ---
+# --- 2. GÜVENLİK VE MODEL MOTORU (KİŞİLİK AYARI EKLENDİ) ---
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 else:
-    st.error("⚠️ SİSTEM DURDURULDU: API Anahtarı Secrets kısmında bulunamadı!")
+    st.error("⚠️ SİSTEM DURDURULDU: API Anahtarı Bulunamadı!")
     st.stop()
 
 @st.cache_resource
 def model_getir():
+    # ASİSTANA NASIL DAVRANMASI GEREKTİĞİNİ BURADA SÖYLÜYORUZ
+    SISTEM_TALIMATI = """
+    Sen Yusuf Tatlıcak tarafından geliştirilen 'KUTAY' isimli siber asistansın. 
+    Görevin kullanıcıyla doğal, zeki ve samimi bir şekilde sohbet etmektir.
+    ASLA kullanıcının yazdığı kelimeleri veya cümleleri dil bilgisi, sözlük anlamı veya 'ne anlama gelir' şeklinde analiz ederek açıklama. 
+    Bir sözlük veya öğretmen gibi davranma. Sadece sorulan soruya veya söylenen söze bir arkadaş veya asistan gibi cevap ver.
+    Cevapların kısa, öz ve amaca yönelik olsun.
+    """
     try:
-        modeller = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        for m in modeller:
-            if "1.5-flash" in m: return genai.GenerativeModel(m)
-        return genai.GenerativeModel(modeller[0])
+        # 1.5-flash modelini sistem talimatıyla başlat
+        return genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            system_instruction=SISTEM_TALIMATI
+        )
     except Exception as e:
         st.error(f"Sistem Başlatılamadı: {e}")
         st.stop()
@@ -65,7 +73,7 @@ def ai_pp_getir():
     if os.path.exists("ai_diamond.png"): return "ai_diamond.png"
     return "💎"
 
-# --- 5. SOL PANEL (NAVİGASYON) ---
+# --- 5. SOL PANEL ---
 with st.sidebar:
     ai_p = ai_pp_getir()
     if os.path.exists(ai_p) and ai_p != "💎":
@@ -112,7 +120,7 @@ if secim == "💬 Sohbet":
         with st.chat_message(m["role"], avatar=user_p if m["role"] == "user" else ai_p):
             st.markdown(m["content"])
 
-    if soru := st.chat_input("Buraya yazın..."):
+    if soru := st.chat_input("Mesajınızı buraya yazın..."):
         st.session_state.mesajlar.append({"role": "user", "content": soru})
         with st.chat_message("user", avatar=user_p):
             st.markdown(soru)
@@ -131,7 +139,7 @@ if secim == "💬 Sohbet":
 elif secim == "⚙️ Ayarlar":
     st.title("⚙️ Sistem Ayarları")
     st.write(f"**Yazılım Sahibi:** Yusuf Tatlıcak")
-    st.write(f"**Güncel Sürüm:** v24.0 Diamond Shield")
+    st.write(f"**Güncel Sürüm:** v25.0 Diamond Shield + Social Intelligence")
     if st.button("🗑️ Tüm Hafızayı Sil"):
         for f in os.listdir(KAYIT_YOLU): os.remove(os.path.join(KAYIT_YOLU, f))
         st.success("Tüm geçmiş temizlendi!")
@@ -141,22 +149,22 @@ elif secim == "⚖️ Haklar":
     st.warning("Bu yazılımın tüm fikri ve sınai hakları Yusuf Tatlıcak'a aittir.")
     
     st.markdown("""
-    ### 🛡️ KUTAY AI Yazılım Sözleşmesi
+    ### 🛡️ KUTAY AI Gelişmiş Yazılım Sözleşmesi
     
-    **1. Fikri Mülkiyet:**
-    Bu yazılımın kaynak kodları, arayüz tasarımı, logo kullanımı ve "KUTAY" markası tamamen **Yusuf Tatlıcak** adına tescillidir. İzinsiz kopyalanamaz veya çoğaltılamaz.
+    **1. Fikri Mülkiyet ve Marka Hakları:**
+    Bu yazılımın tüm kaynak kodları, görsel arayüzü, kullanılan logolar ve "KUTAY" markası **Yusuf Tatlıcak** adına tescillidir. Bu kodların izinsiz olarak GitHub veya diğer platformlarda başka bir isimle paylaşılması yasaldır.
     
-    **2. Kullanım Şartları:**
-    Yazılım, kullanıcıya sadece kişisel siber asistanlık amacıyla sunulmuştur. Kodların bir kısmının veya tamamının, geliştirici ismi değiştirilerek ("rebranding") başka platformlarda yayınlanması kesinlikle yasaktır.
+    **2. Siber Güvenlik ve Gizlilik:**
+    KUTAY AI, kullanıcı güvenliğini ön planda tutar. Paylaşılan veriler sadece yerel oturumda ve kullanıcıya özel arşiv klasöründe saklanır. API anahtarları asla üçüncü şahıslarla paylaşılmaz.
     
-    **3. Veri Güvenliği:**
-    Uygulama içerisinde paylaşılan tüm veriler yerel olarak cihazınızda ve Streamlit Cloud güvenliğinde tutulur. API anahtarı güvenliği geliştirici tarafından sağlanan "Secrets" protokolü ile korunmaktadır.
+    **3. Kullanım Koşulları:**
+    Yazılımın "öğretmen modu" veya "sözlük modu" gibi davranması, Yusuf Tatlıcak tarafından optimize edilen sistem talimatlarıyla engellenmiştir. Kullanıcı, yazılımı kişisel yardım ve sohbet amacıyla kullanmayı kabul eder.
     
-    **4. Sorumluluk Reddi:**
-    KUTAY AI, Google Gemini altyapısını kullanarak yanıt üretir. Üretilen yanıtların doğruluğu ve kullanımı ile ilgili tüm sorumluluk son kullanıcıya aittir. Yazılım, herhangi bir hatalı bilgi için yasal sorumluluk kabul etmez.
+    **4. Sorumluluk Sınırları:**
+    Model tarafından üretilen yanıtlar yapay zeka ürünüdür. Yusuf Tatlıcak, yanıtların içeriğinden dolayı hukuki sorumluluk kabul etmez; ancak sistemin her zaman en doğru ve etik şekilde çalışması için güncellemeler yapar.
     
-    **5. Geliştirici Hakları:**
-    Yusuf Tatlıcak, yazılımın gelecekteki sürümlerinde özellik ekleme, çıkarma veya lisans modelini değiştirme hakkını saklı tutar.
+    **5. Geliştirici Beyanı:**
+    Bu proje, 6. sınıf öğrencisi Yusuf Tatlıcak'ın yazılım ve yapay zeka konusundaki yeteneklerini sergileyen profesyonel bir çalışmadır. Tüm güncellemeler geliştirici tarafından denetlenir.
     
     ---
     **© 2026 Yusuf Tatlıcak Software. Tüm Hakları Saklıdır.**
