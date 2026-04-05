@@ -5,109 +5,110 @@ import time
 # --- 1. SİSTEM VE SAYFA YAPILANDIRMASI ---
 st.set_page_config(page_title="KUTAY AI", page_icon="🤖", layout="centered")
 
-# API Anahtarın (Senin paylaştığın aktif anahtar)
+# API Anahtarın
 API_KEY = "AIzaSyAYeaejVesg2ik5ESyUdQFvyYHwW4ISg_I"
 
 try:
     genai.configure(api_key=API_KEY)
-    # 404 Hatasını önlemek için en stabil model olan gemini-pro kullanıldı
-    model = genai.GenerativeModel('gemini-pro')
+    # HATA ÇÖZÜMÜ: v1beta hatalarını önlemek için model ismini güncelledik
+    model = genai.GenerativeModel('gemini-1.5-flash-latest')
 except Exception as e:
     st.error(f"API Yapılandırma Hatası: {e}")
 
-# --- 2. GÖRSEL TASARIM (BEYAZ ARKA PLAN VE MAVİ BALONLAR) ---
+# --- 2. GÖRSEL TASARIM (HER YER BEYAZ VE MODERN) ---
 st.markdown("""
     <style>
-    /* Ana Arka Planı Beyaz Yap */
+    /* ANA ARKA PLAN BEYAZ */
     .stApp { background-color: #FFFFFF !important; color: #31333F !important; }
     
-    /* Yan Menü (Sidebar) Koyu Kalsın (Kontrast İçin) */
-    [data-testid="stSidebar"] { background-color: #161b22 !important; border-right: 1px solid #ddd; }
-    [data-testid="stSidebar"] * { color: white !important; }
+    /* SOL MENÜ (SIDEBAR) BEYAZ YAPILDI */
+    [data-testid="stSidebar"] { 
+        background-color: #FFFFFF !important; 
+        border-right: 1px solid #eeeeee !important; 
+    }
+    [data-testid="stSidebar"] * { color: #31333F !important; }
+    
+    /* SIDEBAR BUTONLARI VE RADİO DÜZELTME */
+    .stRadio > label { color: #31333F !important; font-weight: bold !important; }
 
-    /* Konuşma Balonları Tasarımı (image_456442.png stili) */
+    /* KONUŞMA BALONLARI (MAVİ VE GRİ) */
     .stChatMessage {
         border-radius: 20px !important;
-        padding: 10px 15px !important;
+        padding: 12px 18px !important;
         margin-bottom: 10px !important;
         max-width: 85% !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
     }
     
-    /* Kullanıcı Mesajı: MAVİ ARKA PLAN */
+    /* KULLANICI MESAJI: AÇIK MAVİ */
     [data-testid="stChatMessageUser"] {
-        background-color: #E1F5FE !important; /* Açık Mavi */
-        border: 1px solid #B3E5FC !important;
-        float: right !important;
-        color: #01579B !important;
+        background-color: #E3F2FD !important;
+        border: 1px solid #BBDEFB !important;
+        color: #0D47A1 !important;
     }
 
-    /* Yapay Zeka Mesajı: BEYAZ/GRİ ARKA PLAN */
+    /* AI MESAJI: AÇIK GRİ */
     [data-testid="stChatMessageAssistant"] {
-        background-color: #F8F9FA !important;
-        border: 1px solid #E9ECEF !important;
-        float: left !important;
-        color: #212529 !important;
+        background-color: #F5F5F5 !important;
+        border: 1px solid #E0E0E0 !important;
+        color: #212121 !important;
     }
 
-    /* Başlıklar */
-    h1 { color: #007BFF !important; text-align: center; font-weight: 800; }
-    
-    /* Input Alanı (Yazı Yazma Kısmı) */
+    /* BAŞLIK VE METİNLER */
+    h1 { color: #1976D2 !important; text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .stChatInputContainer { background-color: #FFFFFF !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. SOHBET HAFIZASI VE SAYFA YÖNETİMİ ---
+# --- 3. SOHBET HAFIZASI ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- 4. YAN MENÜ (SIDEBAR) ---
+# --- 4. SOL MENÜ (SIDEBAR) İÇERİĞİ ---
 with st.sidebar:
-    st.markdown("## 🤖 KUTAY PANEL")
+    st.markdown("# ⚙️ KUTAY PANEL")
+    st.write("Yusuf Tatlıcak Özel Sistemi")
     st.markdown("---")
     
-    # Menü Seçenekleri
-    page = st.radio("Menüden Seçim Yap:", ["💬 Sohbet", "⚙️ Ayarlar", "📜 Geçmiş"])
+    page = st.radio("Menü:", ["💬 Sohbet", "🛠️ Ayarlar", "📜 Geçmiş"])
     
     st.markdown("---")
-    st.subheader("🛡️ Güvenlik Merkezi")
-    st.write("Dosya tarama sistemine git:")
+    st.subheader("🛡️ Güvenlik")
     st.link_button("KUTAY KORUMA'YA GİT", "https://kutay-koruma-bgtossczrvlrpihvhmof2f.streamlit.app")
     
     st.markdown("---")
-    if st.button("🗑️ Sohbeti Sıfırla"):
+    if st.button("🗑️ Sohbeti Temizle"):
         st.session_state.messages = []
         st.rerun()
 
-# --- 5. ANA SAYFA İÇERİĞİ ---
+# --- 5. ANA EKRAN İŞLEMLERİ ---
 
 if page == "💬 Sohbet":
     st.title("🤖 KUTAY AI")
-    st.markdown("<p style='text-align: center; color: gray;'>Yusuf Tatlıcak Tarafından Geliştirilen Özel Asistan</p>", unsafe_allow_html=True)
+    st.caption("Yusuf Tatlıcak Tarafından Geliştirilen Akıllı Asistan")
 
-    # Sohbet Geçmişini Ekrana Bas
+    # Geçmişi Göster
     for message in st.session_state.messages:
-        # Avatarları image_456442.png'ye uygun seçtik
         avatar = "👤" if message["role"] == "user" else "💎"
         with st.chat_message(message["role"], avatar=avatar):
             st.markdown(message["content"])
 
-    # Kullanıcıdan Yazı Al
-    if prompt := st.chat_input("Mesajınızı buraya yazın..."):
-        # Kullanıcı mesajını göster ve kaydet
+    # Mesaj Girişi
+    if prompt := st.chat_input("Buraya yazın..."):
         with st.chat_message("user", avatar="👤"):
             st.markdown(prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
 
-        # AI Yanıtı
+        # Yanıt Üretme
         with st.chat_message("assistant", avatar="💎"):
             msg_area = st.empty()
             full_res = ""
             
             try:
+                # Modeli çağır
                 response = model.generate_content(prompt)
                 
-                # Yazıyor efekti
+                # Yazma efekti
                 for word in response.text.split():
                     full_res += word + " "
                     time.sleep(0.04)
@@ -117,25 +118,27 @@ if page == "💬 Sohbet":
                 st.session_state.messages.append({"role": "assistant", "content": full_res})
 
             except Exception as e:
-                # 429 ve diğer hataları yönet
-                if "429" in str(e):
-                    st.error("🚨 KOTA DOLDU: Yusuf, Google limiti doldu. 1 dakika bekleyip tekrar yazarsan düzelecek!")
+                # Hata Yönetimi
+                error_msg = str(e)
+                if "429" in error_msg:
+                    st.warning("⚠️ Kota doldu Yusuf. 30 saniye sonra tekrar dene.")
+                elif "404" in error_msg:
+                    st.error("🚨 Model ismi güncelleniyor, lütfen sayfayı yenile.")
                 else:
-                    st.error(f"Bir aksaklık oldu: {e}")
+                    st.error(f"Sistemde bir hata oluştu: {e}")
 
-elif page == "⚙️ Ayarlar":
-    st.title("⚙️ Ayarlar")
-    st.info("Sistem Yusuf Tatlıcak adına lisanslanmıştır.")
-    st.write("**Model:** Gemini Pro (Stabil)")
-    st.write("**Versiyon:** 4.0 (Legacy Modern)")
-    st.write("**Tema:** Aydınlık Mod (Aktif)")
-    st.success("Tüm sistemler stabil çalışıyor.")
+elif page == "🛠️ Ayarlar":
+    st.title("🛠️ Sistem Ayarları")
+    st.success("Yazılım Yusuf Tatlıcak adına tescillidir.")
+    st.write("**Versiyon:** 5.0 (Final)")
+    st.write("**Görünüm:** Full White Mode")
+    st.write("**Model Durumu:** Aktif (Gemini 1.5 Flash)")
 
 elif page == "📜 Geçmiş":
-    st.title("📜 Konuşma Geçmişi")
+    st.title("📜 Konuşma Kayıtları")
     if not st.session_state.messages:
-        st.warning("Henüz bir konuşma kaydı yok.")
+        st.info("Henüz kayıtlı mesaj yok.")
     else:
         for m in st.session_state.messages:
-            role_name = "Siz" if m["role"] == "user" else "KUTAY AI"
-            st.text_area(f"{role_name}:", value=m["content"], height=80, disabled=True)
+            label = "Yusuf" if m["role"] == "user" else "AI"
+            st.text_area(f"{label}:", value=m["content"], height=70, disabled=True)
