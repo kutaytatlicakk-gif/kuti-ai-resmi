@@ -7,6 +7,7 @@ from datetime import datetime
 # --- 1. MARKA VE TASARIM AYARLARI ---
 st.set_page_config(page_title="KUTAY AI", page_icon="💎", layout="wide")
 
+# CSS: Su mavisi mesaj balonları ve SAĞ ALT KÖŞE GELİŞTİRİCİ YAZISI
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; color: #1E1E1E; }
@@ -25,32 +26,64 @@ st.markdown("""
     .stButton>button:hover { border-color: #007BFF; color: #007BFF; }
     .stTextInput>div>div>input { background-color: #F1F3F4; color: #1E1E1E; border-radius: 20px; }
     footer {visibility: hidden;}
+    
+    /* SAĞ ALT KÖŞE GELİŞTİRİCİ ETİKETİ (WATERMARK) */
+    .developer-watermark {
+        position: fixed;
+        bottom: 15px;
+        right: 15px;
+        background-color: #F8F9FA;
+        color: #333333;
+        font-size: 13px;
+        font-weight: bold;
+        padding: 8px 12px;
+        border-radius: 12px;
+        border: 1px solid #D1D1D1;
+        z-index: 99999;
+        box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+        backdrop-filter: blur(5px);
+    }
     </style>
+    
+    <div class="developer-watermark">
+        🛡️ Geliştirici: Kutay Tatlıcak
+    </div>
     """, unsafe_allow_html=True)
 
-# --- 2. GÜVENLİK VE MODEL MOTORU (KİŞİLİK AYARI EKLENDİ) ---
+# --- 2. GÜVENLİK VE YAPAY ZEKA MOTORU ---
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 else:
     st.error("⚠️ SİSTEM DURDURULDU: API Anahtarı Bulunamadı!")
     st.stop()
 
+# YAPAY ZEKANIN KİŞİLİK VE KİMLİK AYARLARI
+SISTEM_TALIMATI = """
+Senin adın KUTAY. Sen Kutay Tatlıcak tarafından özel olarak geliştirilen, üst düzey bir siber asistansın.
+1. Senin sahibin, yaratıcın ve tek geliştiricin Kutay Tatlıcak'tır. Biri sana sahibini, kimin yaptığını veya geliştiricini sorarsa kesinlikle 'Kutay Tatlıcak' (veya Kutay) olarak cevap vermelisin.
+2. Kullanıcıyla doğal, zeki, amaca yönelik ve profesyonel bir şekilde sohbet et.
+3. ASLA kullanıcının yazdığı kelimeleri sözlük gibi açıklama. "Ne anlama gelir", "kelime anlamı şudur" gibi tanımlamalar yapma. Türkçe öğretmeni değilsin, sen bir siber asistansın. Sadece sorulana net ve doğal cevaplar ver. "Hepsi" gibi kelimeleri tanımlama.
+"""
+
 @st.cache_resource
 def model_getir():
-    # ASİSTANA NASIL DAVRANMASI GEREKTİĞİNİ BURADA SÖYLÜYORUZ
-    SISTEM_TALIMATI = """
-    Sen Yusuf Tatlıcak tarafından geliştirilen 'KUTAY' isimli siber asistansın. 
-    Görevin kullanıcıyla doğal, zeki ve samimi bir şekilde sohbet etmektir.
-    ASLA kullanıcının yazdığı kelimeleri veya cümleleri dil bilgisi, sözlük anlamı veya 'ne anlama gelir' şeklinde analiz ederek açıklama. 
-    Bir sözlük veya öğretmen gibi davranma. Sadece sorulan soruya veya söylenen söze bir arkadaş veya asistan gibi cevap ver.
-    Cevapların kısa, öz ve amaca yönelik olsun.
-    """
     try:
-        # 1.5-flash modelini sistem talimatıyla başlat
-        return genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            system_instruction=SISTEM_TALIMATI
-        )
+        # 404 Hatasını çözen dinamik model bulucu
+        modeller = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        
+        # Öncelikli olarak flash bulmaya çalış, bulamazsa hesabındaki ilk çalışan modeli al
+        secilen_model = modeller[0] 
+        for m in modeller:
+            if "1.5-flash" in m:
+                secilen_model = m
+                break
+
+        try:
+            return genai.GenerativeModel(model_name=secilen_model, system_instruction=SISTEM_TALIMATI)
+        except:
+            # Eski SDK sürümleri için güvenlik önlemi
+            return genai.GenerativeModel(model_name=secilen_model)
+            
     except Exception as e:
         st.error(f"Sistem Başlatılamadı: {e}")
         st.stop()
@@ -111,7 +144,7 @@ with st.sidebar:
 
 if secim == "💬 Sohbet":
     st.markdown(f"<h2 style='text-align: center; color: #1E1E1E;'>🤖 Kutay Siber Asistan</h2>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align: center; color: #757575;'>Geliştirici: Yusuf Tatlıcak</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: center; color: #757575;'>Geliştirici: Kutay Tatlıcak</p>", unsafe_allow_html=True)
 
     user_p = user_pp_getir()
     ai_p = ai_pp_getir()
@@ -134,38 +167,38 @@ if secim == "💬 Sohbet":
                 with open(f"{KAYIT_YOLU}/{st.session_state.aktif_id}.json", "w", encoding="utf-8") as f_kayit:
                     json.dump(st.session_state.mesajlar, f_kayit, ensure_ascii=False)
             except Exception as e:
-                st.error(f"Bağlantı Hatası: {e}")
+                st.error(f"Sistem Yanıt Hatası: {e}")
 
 elif secim == "⚙️ Ayarlar":
     st.title("⚙️ Sistem Ayarları")
-    st.write(f"**Yazılım Sahibi:** Yusuf Tatlıcak")
-    st.write(f"**Güncel Sürüm:** v25.0 Diamond Shield + Social Intelligence")
+    st.write(f"**Yazılım Sahibi:** Kutay Tatlıcak")
+    st.write(f"**Güncel Sürüm:** v26.0 Master Edition")
     if st.button("🗑️ Tüm Hafızayı Sil"):
         for f in os.listdir(KAYIT_YOLU): os.remove(os.path.join(KAYIT_YOLU, f))
         st.success("Tüm geçmiş temizlendi!")
 
 elif secim == "⚖️ Haklar":
     st.title("⚖️ Kullanım ve Lisans Hakları")
-    st.warning("Bu yazılımın tüm fikri ve sınai hakları Yusuf Tatlıcak'a aittir.")
+    st.warning("Bu yazılımın tüm fikri ve sınai hakları Kutay Tatlıcak'a aittir.")
     
     st.markdown("""
-    ### 🛡️ KUTAY AI Gelişmiş Yazılım Sözleşmesi
+    ### 🛡️ KUTAY AI Profesyonel Yazılım Sözleşmesi
     
     **1. Fikri Mülkiyet ve Marka Hakları:**
-    Bu yazılımın tüm kaynak kodları, görsel arayüzü, kullanılan logolar ve "KUTAY" markası **Yusuf Tatlıcak** adına tescillidir. Bu kodların izinsiz olarak GitHub veya diğer platformlarda başka bir isimle paylaşılması yasaldır.
+    Bu yazılımın tüm kaynak kodları, görsel arayüzü, sistem mimarisi, logoları ve "KUTAY" markası tamamen **Kutay Tatlıcak** adına tescillidir. Kodların izinsiz olarak çoğaltılması, kopyalanması veya başka projelerde isim değiştirilerek kullanılması kesinlikle yasaktır.
     
     **2. Siber Güvenlik ve Gizlilik:**
-    KUTAY AI, kullanıcı güvenliğini ön planda tutar. Paylaşılan veriler sadece yerel oturumda ve kullanıcıya özel arşiv klasöründe saklanır. API anahtarları asla üçüncü şahıslarla paylaşılmaz.
+    KUTAY AI, veri güvenliğini en üst düzeyde tutar. Kullanıcı sohbet geçmişi ve verileri yalnızca yerel klasörlerde barındırılır. Sisteme entegre edilen API anahtarları şifrelenmiş Secrets altyapısı ile korunur ve hiçbir koşulda üçüncü taraflarla paylaşılmaz.
     
     **3. Kullanım Koşulları:**
-    Yazılımın "öğretmen modu" veya "sözlük modu" gibi davranması, Yusuf Tatlıcak tarafından optimize edilen sistem talimatlarıyla engellenmiştir. Kullanıcı, yazılımı kişisel yardım ve sohbet amacıyla kullanmayı kabul eder.
+    Bu sistem, özel bir siber asistan olarak yapılandırılmıştır. Sözlük, çevirmen veya dil bilgisi öğretmeni gibi standart bot davranışları göstermez. Kullanıcı, yapay zekanın asistanlık sınırları çerçevesinde işlem yapmayı kabul eder.
     
     **4. Sorumluluk Sınırları:**
-    Model tarafından üretilen yanıtlar yapay zeka ürünüdür. Yusuf Tatlıcak, yanıtların içeriğinden dolayı hukuki sorumluluk kabul etmez; ancak sistemin her zaman en doğru ve etik şekilde çalışması için güncellemeler yapar.
+    Yazılımın temel veri işleme motoru dış kaynaklı API'lerle desteklenmektedir. Sistemin ürettiği sonuçlardan doğabilecek teknik aksaklıklar veya yanlış bilgilerden doğrudan sistem sahibi sorumlu tutulamaz. Geliştirici, sistemi her zaman stabil tutmak için güncellemeler sağlar.
     
     **5. Geliştirici Beyanı:**
-    Bu proje, 6. sınıf öğrencisi Yusuf Tatlıcak'ın yazılım ve yapay zeka konusundaki yeteneklerini sergileyen profesyonel bir çalışmadır. Tüm güncellemeler geliştirici tarafından denetlenir.
+    Bu proje, **Kutay Tatlıcak** tarafından sıfırdan dizayn edilmiş, profesyonel standartlarda kodlanmış bir yapay zeka entegrasyonudur. Her türlü güncelleme, değişiklik ve kapatma hakkı sadece geliştiriciye aittir.
     
     ---
-    **© 2026 Yusuf Tatlıcak Software. Tüm Hakları Saklıdır.**
+    **© 2026 Kutay Tatlıcak Software. Tüm Hakları Saklıdır.**
     """)
