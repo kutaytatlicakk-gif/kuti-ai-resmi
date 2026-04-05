@@ -56,7 +56,6 @@ else:
     st.error("⚠️ SİSTEM DURDURULDU: API Anahtarı Bulunamadı!")
     st.stop()
 
-# YAPAY ZEKANIN KİMLİK AYARI (Sahibi Kutay olarak tanımlandı)
 SISTEM_TALIMATI = """
 Senin adın KUTAY. Sen Kutay Tatlıcak tarafından geliştirilen profesyonel bir siber asistansın.
 1. Sahibin Kim?: Biri sana "Sahibin kim?", "Seni kim yaptı?", "Geliştiricin kim?" gibi sorular sorarsa cevabın her zaman "Kutay Tatlıcak" (veya Kutay) olmalıdır. 
@@ -95,6 +94,12 @@ with st.sidebar:
     st.title("KUTAY AI")
     st.write(f"Hoş geldin, **Kutay**")
     secim = st.radio("", ["💬 Sohbet", "⚙️ Ayarlar", "⚖️ Haklar"])
+    
+    st.write("---")
+    # EKLEDİĞİM LİNK BURADA:
+    st.markdown("### 🛡️ Güvenlik Sistemi")
+    st.link_button("KUTAY KORUMA", "https://kutay-koruma-bgtossczrvlrpihvhmof2f.streamlit.app")
+    
     st.write("---")
     
     if st.button("➕ Yeni Sohbet"):
@@ -135,7 +140,7 @@ if secim == "💬 Sohbet":
                 with open(f"{KAYIT_YOLU}/{st.session_state.aktif_id}.json", "w", encoding="utf-8") as f:
                     json.dump(st.session_state.mesajlar, f, ensure_ascii=False)
             except Exception as e:
-                st.error(f"Hata: {e}")
+                st.error(f"Hata (Kota Dolmuş Olabilir): {e}")
 
 elif secim == "⚙️ Ayarlar":
     st.title("⚙️ Sistem Ayarları")
