@@ -7,7 +7,7 @@ from datetime import datetime
 # --- 1. MARKA VE TASARIM AYARLARI ---
 st.set_page_config(page_title="KUTAY AI", page_icon="💎", layout="wide")
 
-# CSS: Su mavisi mesaj balonları ve SAĞ ALT KÖŞE GELİŞTİRİCİ YAZISI
+# CSS: Su mavisi balonlar ve SAĞ ÜST KÖŞE GELİŞTİRİCİ ETİKETİ
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; color: #1E1E1E; }
@@ -27,25 +27,24 @@ st.markdown("""
     .stTextInput>div>div>input { background-color: #F1F3F4; color: #1E1E1E; border-radius: 20px; }
     footer {visibility: hidden;}
     
-    /* SAĞ ALT KÖŞE GELİŞTİRİCİ ETİKETİ (WATERMARK) */
-    .developer-watermark {
+    /* SAĞ ÜST KÖŞE GELİŞTİRİCİ ETİKETİ (WATERMARK) */
+    .developer-tag {
         position: fixed;
-        bottom: 15px;
-        right: 15px;
-        background-color: #F8F9FA;
-        color: #333333;
-        font-size: 13px;
+        top: 50px;
+        right: 20px;
+        background-color: #007BFF;
+        color: #FFFFFF;
+        font-size: 14px;
         font-weight: bold;
-        padding: 8px 12px;
-        border-radius: 12px;
-        border: 1px solid #D1D1D1;
+        padding: 10px 15px;
+        border-radius: 30px;
         z-index: 99999;
-        box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
-        backdrop-filter: blur(5px);
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
+        border: 2px solid #FFFFFF;
     }
     </style>
     
-    <div class="developer-watermark">
+    <div class="developer-tag">
         🛡️ Geliştirici: Kutay Tatlıcak
     </div>
     """, unsafe_allow_html=True)
@@ -57,64 +56,44 @@ else:
     st.error("⚠️ SİSTEM DURDURULDU: API Anahtarı Bulunamadı!")
     st.stop()
 
-# YAPAY ZEKANIN KİŞİLİK VE KİMLİK AYARLARI
+# YAPAY ZEKANIN KİMLİK AYARI (Sahibi Kutay olarak tanımlandı)
 SISTEM_TALIMATI = """
-Senin adın KUTAY. Sen Kutay Tatlıcak tarafından özel olarak geliştirilen, üst düzey bir siber asistansın.
-1. Senin sahibin, yaratıcın ve tek geliştiricin Kutay Tatlıcak'tır. Biri sana sahibini, kimin yaptığını veya geliştiricini sorarsa kesinlikle 'Kutay Tatlıcak' (veya Kutay) olarak cevap vermelisin.
-2. Kullanıcıyla doğal, zeki, amaca yönelik ve profesyonel bir şekilde sohbet et.
-3. ASLA kullanıcının yazdığı kelimeleri sözlük gibi açıklama. "Ne anlama gelir", "kelime anlamı şudur" gibi tanımlamalar yapma. Türkçe öğretmeni değilsin, sen bir siber asistansın. Sadece sorulana net ve doğal cevaplar ver. "Hepsi" gibi kelimeleri tanımlama.
+Senin adın KUTAY. Sen Kutay Tatlıcak tarafından geliştirilen profesyonel bir siber asistansın.
+1. Sahibin Kim?: Biri sana "Sahibin kim?", "Seni kim yaptı?", "Geliştiricin kim?" gibi sorular sorarsa cevabın her zaman "Kutay Tatlıcak" (veya Kutay) olmalıdır. 
+2. Davranış: Profesyonel, zeki ve doğal konuş. 
+3. Kural: Kelime anlamlarını sözlük gibi açıklama. "Hepsi" veya benzeri kelimelerin tanımını yapma. Sadece sohbete odaklan.
 """
 
 @st.cache_resource
 def model_getir():
     try:
-        # 404 Hatasını çözen dinamik model bulucu
         modeller = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        
-        # Öncelikli olarak flash bulmaya çalış, bulamazsa hesabındaki ilk çalışan modeli al
-        secilen_model = modeller[0] 
-        for m in modeller:
-            if "1.5-flash" in m:
-                secilen_model = m
-                break
-
-        try:
-            return genai.GenerativeModel(model_name=secilen_model, system_instruction=SISTEM_TALIMATI)
-        except:
-            # Eski SDK sürümleri için güvenlik önlemi
-            return genai.GenerativeModel(model_name=secilen_model)
-            
+        secilen_model = next((m for m in modeller if "1.5-flash" in m), modeller[0])
+        return genai.GenerativeModel(model_name=secilen_model, system_instruction=SISTEM_TALIMATI)
     except Exception as e:
-        st.error(f"Sistem Başlatılamadı: {e}")
+        st.error(f"Model Hatası: {e}")
         st.stop()
 
 model = model_getir()
 
-# --- 3. VERİ SİSTEMİ VE HAFIZA ---
+# --- 3. VERİ VE HAFIZA ---
 KAYIT_YOLU = "sohbet_arsivi"
 if not os.path.exists(KAYIT_YOLU): os.makedirs(KAYIT_YOLU)
 
 if "mesajlar" not in st.session_state: st.session_state.mesajlar = []
 if "aktif_id" not in st.session_state: st.session_state.aktif_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# --- 4. HATA ÖNLEYİCİ PP KONTROLÜ ---
-def user_pp_getir():
-    if os.path.exists("user_pp.png"): return "user_pp.png"
-    return "👤"
+# --- 4. PROFİL RESMİ KONTROLLERİ ---
+def get_avatar(role):
+    if role == "user":
+        return "user_pp.png" if os.path.exists("user_pp.png") else "👤"
+    return "ai_diamond.png" if os.path.exists("ai_diamond.png") else "💎"
 
-def ai_pp_getir():
-    if os.path.exists("ai_diamond.png"): return "ai_diamond.png"
-    return "💎"
-
-# --- 5. SOL PANEL ---
+# --- 5. SOL PANEL (NAVİGASYON) ---
 with st.sidebar:
-    ai_p = ai_pp_getir()
-    if os.path.exists(ai_p) and ai_p != "💎":
-        st.image(ai_p, width=50)
-    else:
-        st.markdown(f"<h2>{ai_p}</h2>", unsafe_allow_html=True)
-            
-    st.title("KUTAY")
+    st.markdown(f"<h1 style='text-align: center;'>{get_avatar('assistant')}</h1>", unsafe_allow_html=True)
+    st.title("KUTAY AI")
+    st.write(f"Hoş geldin, **Kutay**")
     secim = st.radio("", ["💬 Sohbet", "⚙️ Ayarlar", "⚖️ Haklar"])
     st.write("---")
     
@@ -123,82 +102,57 @@ with st.sidebar:
         st.session_state.aktif_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         st.rerun()
 
-    st.subheader("🕒 Geçmiş Sohbetler")
+    st.subheader("🕒 Sohbet Geçmişi")
     dosyalar = sorted([f for f in os.listdir(KAYIT_YOLU) if f.endswith(".json")], reverse=True)
-    for dosya in dosyalar:
-        dosya_yolu = os.path.join(KAYIT_YOLU, dosya)
-        try:
-            with open(dosya_yolu, "r", encoding="utf-8") as f:
-                veriler = json.load(f)
-                baslik = veriler[0]["content"][:25] + "..." if veriler else dosya
-        except:
-            baslik = "Boş Sohbet"
-            
+    for dosya in dosyalar[:10]:
+        with open(os.path.join(KAYIT_YOLU, dosya), "r", encoding="utf-8") as f:
+            v = json.load(f)
+            baslik = v[0]["content"][:20] + "..." if v else dosya
         if st.button(f"💬 {baslik}", key=dosya):
-            with open(dosya_yolu, "r", encoding="utf-8") as f_yukle:
-                st.session_state.mesajlar = json.load(f_yukle)
-                st.session_state.aktif_id = dosya.replace(".json", "")
+            st.session_state.mesajlar = v
+            st.session_state.aktif_id = dosya.replace(".json", "")
             st.rerun()
 
 # --- 6. SAYFA İÇERİKLERİ ---
 
 if secim == "💬 Sohbet":
-    st.markdown(f"<h2 style='text-align: center; color: #1E1E1E;'>🤖 Kutay Siber Asistan</h2>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align: center; color: #757575;'>Geliştirici: Kutay Tatlıcak</p>", unsafe_allow_html=True)
-
-    user_p = user_pp_getir()
-    ai_p = ai_pp_getir()
-
+    st.markdown("<h2 style='text-align: center;'>🤖 Kutay Siber Asistan</h2>", unsafe_allow_html=True)
+    
     for m in st.session_state.mesajlar:
-        with st.chat_message(m["role"], avatar=user_p if m["role"] == "user" else ai_p):
+        with st.chat_message(m["role"], avatar=get_avatar(m["role"])):
             st.markdown(m["content"])
 
-    if soru := st.chat_input("Mesajınızı buraya yazın..."):
+    if soru := st.chat_input("Buraya yazın..."):
         st.session_state.mesajlar.append({"role": "user", "content": soru})
-        with st.chat_message("user", avatar=user_p):
+        with st.chat_message("user", avatar=get_avatar("user")):
             st.markdown(soru)
         
-        with st.chat_message("assistant", avatar=ai_p):
+        with st.chat_message("assistant", avatar=get_avatar("assistant")):
             try:
                 cevap = model.generate_content(soru)
                 st.markdown(cevap.text)
                 st.session_state.mesajlar.append({"role": "assistant", "content": cevap.text})
-                
-                with open(f"{KAYIT_YOLU}/{st.session_state.aktif_id}.json", "w", encoding="utf-8") as f_kayit:
-                    json.dump(st.session_state.mesajlar, f_kayit, ensure_ascii=False)
+                with open(f"{KAYIT_YOLU}/{st.session_state.aktif_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(st.session_state.mesajlar, f, ensure_ascii=False)
             except Exception as e:
-                st.error(f"Sistem Yanıt Hatası: {e}")
+                st.error(f"Hata: {e}")
 
 elif secim == "⚙️ Ayarlar":
     st.title("⚙️ Sistem Ayarları")
-    st.write(f"**Yazılım Sahibi:** Kutay Tatlıcak")
-    st.write(f"**Güncel Sürüm:** v26.0 Master Edition")
-    if st.button("🗑️ Tüm Hafızayı Sil"):
+    st.info(f"Yazılım Sahibi ve Geliştirici: **Kutay Tatlıcak**")
+    st.write("Sürüm: v27.0 Ultimate")
+    if st.button("🗑️ Tüm Geçmişi Temizle"):
         for f in os.listdir(KAYIT_YOLU): os.remove(os.path.join(KAYIT_YOLU, f))
-        st.success("Tüm geçmiş temizlendi!")
+        st.success("Hafıza sıfırlandı!")
 
 elif secim == "⚖️ Haklar":
-    st.title("⚖️ Kullanım ve Lisans Hakları")
-    st.warning("Bu yazılımın tüm fikri ve sınai hakları Kutay Tatlıcak'a aittir.")
+    st.title("⚖️ Lisans ve Haklar")
+    st.markdown(f"""
+    ### 🛡️ KUTAY AI Resmi Lisansı
+    1. **Mülkiyet:** Bu yazılımın tüm hakları **Kutay Tatlıcak**'a aittir.
+    2. **Kullanım:** İzinsiz kopyalanması, kaynak kodlarının çalınması ve isimsiz paylaşılması yasaktır.
+    3. **Veri:** Kişisel verileriniz ve sohbetleriniz sadece sizin cihazınızda saklanır.
+    4. **Sorumluluk:** Yapay zeka yanıtlarından geliştirici sorumlu tutulamaz.
     
-    st.markdown("""
-    ### 🛡️ KUTAY AI Profesyonel Yazılım Sözleşmesi
-    
-    **1. Fikri Mülkiyet ve Marka Hakları:**
-    Bu yazılımın tüm kaynak kodları, görsel arayüzü, sistem mimarisi, logoları ve "KUTAY" markası tamamen **Kutay Tatlıcak** adına tescillidir. Kodların izinsiz olarak çoğaltılması, kopyalanması veya başka projelerde isim değiştirilerek kullanılması kesinlikle yasaktır.
-    
-    **2. Siber Güvenlik ve Gizlilik:**
-    KUTAY AI, veri güvenliğini en üst düzeyde tutar. Kullanıcı sohbet geçmişi ve verileri yalnızca yerel klasörlerde barındırılır. Sisteme entegre edilen API anahtarları şifrelenmiş Secrets altyapısı ile korunur ve hiçbir koşulda üçüncü taraflarla paylaşılmaz.
-    
-    **3. Kullanım Koşulları:**
-    Bu sistem, özel bir siber asistan olarak yapılandırılmıştır. Sözlük, çevirmen veya dil bilgisi öğretmeni gibi standart bot davranışları göstermez. Kullanıcı, yapay zekanın asistanlık sınırları çerçevesinde işlem yapmayı kabul eder.
-    
-    **4. Sorumluluk Sınırları:**
-    Yazılımın temel veri işleme motoru dış kaynaklı API'lerle desteklenmektedir. Sistemin ürettiği sonuçlardan doğabilecek teknik aksaklıklar veya yanlış bilgilerden doğrudan sistem sahibi sorumlu tutulamaz. Geliştirici, sistemi her zaman stabil tutmak için güncellemeler sağlar.
-    
-    **5. Geliştirici Beyanı:**
-    Bu proje, **Kutay Tatlıcak** tarafından sıfırdan dizayn edilmiş, profesyonel standartlarda kodlanmış bir yapay zeka entegrasyonudur. Her türlü güncelleme, değişiklik ve kapatma hakkı sadece geliştiriciye aittir.
-    
-    ---
-    **© 2026 Kutay Tatlıcak Software. Tüm Hakları Saklıdır.**
+    **© 2026 Kutay Tatlıcak. Tüm Hakları Saklıdır.**
     """)
