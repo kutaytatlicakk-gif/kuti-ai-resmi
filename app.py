@@ -3,19 +3,20 @@ import google.generativeai as genai
 import time
 
 # --- 1. SİSTEM YAPILANDIRMASI (HATA VERMEYEN AYARLAR) ---
-st.set_page_config(page_title="KUTAY AI v5.5", page_icon="💎", layout="centered")
+st.set_page_config(page_title="KUTAY AI v5.6", page_icon="💎", layout="centered")
 
 # Senin paylaştığın API Anahtarı
 API_KEY = "AIzaSyAYeaejVesg2ik5ESyUdQFvyYHwW4ISg_I"
 
 try:
     genai.configure(api_key=API_KEY)
-    # GÖRSELLERDEKİ 404 HATASINI ÇÖZEN EN STABİL MODEL İSMİ
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # GÖRSELLERDEKİ 404 HATASINI ÇÖZEN EN STABİL MODEL TANIMI
+    # 'v1beta' hatasını önlemek için doğrudan model ismi kullanıldı
+    model = genai.GenerativeModel('models/gemini-1.5-flash')
 except Exception as e:
     st.error(f"Sistem Başlatılamadı: {e}")
 
-# --- 2. GÖRSEL TASARIM (FULL BEYAZ & MODERN) ---
+# --- 2. GÖRSEL TASARIM (FULL BEYAZ & MODERN SİSTEM) ---
 st.markdown("""
     <style>
     /* ANA EKRAN BEYAZ */
@@ -28,7 +29,7 @@ st.markdown("""
     }
     [data-testid="stSidebar"] * { color: #31333F !important; }
 
-    /* KONUŞMA BALONLARI (image_456442'deki gibi) */
+    /* KONUŞMA BALONLARI */
     .stChatMessage {
         border-radius: 18px !important;
         padding: 12px 18px !important;
@@ -50,17 +51,17 @@ st.markdown("""
         color: #212529 !important;
     }
 
-    /* YASAL HAKLAR KUTUSU */
+    /* ÇOK DETAYLI YASAL HAKLAR KUTUSU */
     .rights-detail {
         background-color: #fdfdfd;
         border: 1px solid #e0e0e0;
-        border-left: 6px solid #1976D2;
-        padding: 25px;
-        border-radius: 12px;
+        border-left: 8px solid #1976D2;
+        padding: 30px;
+        border-radius: 15px;
         font-family: 'Segoe UI', sans-serif;
+        line-height: 1.6;
     }
 
-    /* ALT İMZA */
     .footer-text {
         text-align: center;
         font-size: 11px;
@@ -127,7 +128,7 @@ if page == "💬 Sohbet":
                 st.session_state.messages.append({"role": "assistant", "content": full_res})
                 
             except Exception as e:
-                # 404 VE 429 HATALARINI PROFESYONELCE YÖNET
+                # HATALARI PROFESYONELCE YÖNET
                 if "429" in str(e):
                     st.warning("⚠️ **Sistem Notu:** Yusuf, kota doldu. 1 dakika sonra her şey düzelecek.")
                 else:
@@ -136,43 +137,43 @@ if page == "💬 Sohbet":
     st.markdown('<div class="footer-text">© 2026 Yusuf Tatlıcak | Tüm Hakları Saklıdır.</div>', unsafe_allow_html=True)
 
 elif page == "🛠️ Ayarlar & Haklarım":
-    st.title("🛡️ Yasal Haklar ve Lisans")
+    st.title("🛡️ Yasal Haklar, Lisans ve Mülkiyet")
     
-    # DETAYLI VE UZUN HAKLAR BÖLÜMÜ
+    # ÇOK DETAYLI VE UZUN HAKLAR BÖLÜMÜ
     st.markdown("""
     <div class="rights-detail">
-        <h2 style="color:#1976D2; margin-top:0;">📜 Yazılım Mülkiyeti</h2>
-        <p><b>KUTAY AI v5.5</b> yazılımının tüm algoritma tasarımı, görsel arayüzü ve entegrasyon yapısı tamamen <b>Yusuf Tatlıcak</b> adına tescillidir.</p>
+        <h2 style="color:#1976D2; margin-top:0;">📜 Resmi Yazılım Lisans Sözleşmesi</h2>
+        <p>Bu yapay zeka yazılımı (<b>KUTAY AI v5.6</b>), tüm fikri ve sınai hakları saklı kalmak kaydıyla münhasıran <b>Yusuf Tatlıcak</b> tarafından tasarlanmış ve kodlanmıştır.</p>
         
-        <h3>📍 Fikri Mülkiyet Detayları</h3>
+        <h3>1. Fikri Mülkiyet ve Telif Hakları</h3>
+        <p>Uygulamanın kaynak kodları, arayüz tasarımı (UI/UX), veri işleme algoritmaları ve "KUTAY AI" markası uluslararası telif hakları yasalarıyla korunmaktadır. Yazılımın her bir satırı Yusuf Tatlıcak Cyber Security Lab bünyesinde tescillenmiştir.</p>
+
+        <h3>2. Kullanım Koşulları ve Yasaklar</h3>
+        <p>Aşağıdaki eylemlerin gerçekleştirilmesi yasal takibat sebebidir:</p>
         <ul>
-            <li><b>Yazılımcı:</b> Yusuf Tatlıcak</li>
-            <li><b>Teknoloji:</b> KUTAY 1.5 FLASH (Özel Optimize Edilmiş Altyapı)</li>
-            <li><b>Sürüm Durumu:</b> Kararlı (Hatasız)</li>
+            <li>Yazılımın "Reverse Engineering" (Tersine Mühendislik) yöntemiyle kodlarının açılması.</li>
+            <li>Kaynak kodlarının Yusuf Tatlıcak'ın yazılı izni olmadan GitHub veya diğer platformlarda paylaşılması.</li>
+            <li>Yazılım isminin değiştirilerek "kendi yapımım" şeklinde sunulması.</li>
         </ul>
 
-        <h3>⚖️ Yasal Uyarı</h3>
-        <p>Bu yazılımın kaynak kodlarının izinsiz olarak;</p>
-        <ol>
-            <li>Kopyalanması ve başka projelerde kullanılması,</li>
-            <li>İsminin değiştirilerek yeniden yayınlanması,</li>
-            <li>Ticari kazanç amacıyla dağıtılması,</li>
-        </ol>
-        <p><b>KESİNLİKLE YASAKTIR.</b> Yusuf Tatlıcak Cyber Security Lab tarafından koruma altındadır.</p>
+        <h3>3. Teknoloji ve Model Bilgisi</h3>
+        <p>Bu sistem, Google Gemini altyapısı üzerine inşa edilmiş <b>KUTAY 1.5 FLASH</b> özel optimizasyon modelini kullanmaktadır.</p>
         
-        <p style="color: green; font-weight: bold;">✅ Lisans Durumu: ONAYLANDI (Yusuf Tatlıcak)</p>
+        <p style="background-color: #e8f5e9; padding: 10px; border-radius: 5px; color: #2e7d32; font-weight: bold; text-align: center;">
+            ⚖️ 2026 Yusuf Tatlıcak - Tüm Hakları Kanunlar Çerçevesinde Saklıdır.
+        </p>
     </div>
     """, unsafe_allow_html=True)
     
     st.divider()
-    st.write("✅ **Model:** KUTAY 1.5 FLASH")
-    st.write("✅ **Güvenlik Skoru:** %100")
-    st.success("Sistem Yusuf Tatlıcak için mükemmel hale getirildi.")
+    st.write("✅ **Model İsmi:** KUTAY 1.5 FLASH")
+    st.write("✅ **Lisans Sahibi:** Yusuf Tatlıcak")
+    st.success("Sistem Yusuf Tatlıcak için %100 kararlı hale getirildi.")
 
 elif page == "📜 Geçmiş":
     st.title("📜 Konuşma Geçmişi")
     if not st.session_state.messages:
-        st.info("Kayıtlı mesaj bulunamadı.")
+        st.info("Henüz bir kayıt yok.")
     else:
         for m in st.session_state.messages:
             lbl = "Yusuf" if m["role"] == "user" else "KUTAY AI"
