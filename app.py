@@ -2,73 +2,91 @@ import streamlit as st
 import google.generativeai as genai
 import time
 
-# --- 1. SİSTEM YAPILANDIRMASI (HATA VERMEYEN AYARLAR) ---
-st.set_page_config(page_title="KUTAY AI v5.6", page_icon="💎", layout="centered")
+# --- 1. SİSTEM YAPILANDIRMASI (HATA ÖNLEYİCİ) ---
+st.set_page_config(page_title="KUTAY AI v6.0 Professional", page_icon="💎", layout="centered")
 
-# Senin paylaştığın API Anahtarı
+# API Anahtarı Tanımlama
 API_KEY = "AIzaSyAYeaejVesg2ik5ESyUdQFvyYHwW4ISg_I"
 
-try:
-    genai.configure(api_key=API_KEY)
-    # GÖRSELLERDEKİ 404 HATASINI ÇÖZEN EN STABİL MODEL TANIMI
-    # 'v1beta' hatasını önlemek için doğrudan model ismi kullanıldı
-    model = genai.GenerativeModel('models/gemini-1.5-flash')
-except Exception as e:
-    st.error(f"Sistem Başlatılamadı: {e}")
+@st.cache_resource
+def load_model():
+    try:
+        genai.configure(api_key=API_KEY)
+        # 404 Hatasını çözen kritik satır: v1beta çakışmasını engellemek için model yolu netleştirildi
+        generation_config = {
+            "temperature": 0.7,
+            "top_p": 1,
+            "top_k": 1,
+            "max_output_tokens": 2048,
+        }
+        # Model ismini kütüphanenin kabul ettiği en saf haliyle tanımlıyoruz
+        model = genai.GenerativeModel(
+            model_name='gemini-1.5-flash',
+            generation_config=generation_config
+        )
+        return model
+    except Exception as e:
+        return f"Sistem Hatası: {e}"
 
-# --- 2. GÖRSEL TASARIM (FULL BEYAZ & MODERN SİSTEM) ---
+model = load_model()
+
+# --- 2. GÖRSEL TASARIM (GELİŞMİŞ BEYAZ TEMA) ---
 st.markdown("""
     <style>
-    /* ANA EKRAN BEYAZ */
-    .stApp { background-color: #FFFFFF !important; color: #31333F !important; }
+    /* ANA EKRAN BEYAZLIK AYARI */
+    .stApp { background-color: #FFFFFF !important; color: #1E1E1E !important; }
     
-    /* SOL MENÜ (SIDEBAR) TAM BEYAZ */
+    /* SOL MENÜ (SIDEBAR) TERTEMİZ BEYAZ */
     [data-testid="stSidebar"] { 
         background-color: #FFFFFF !important; 
-        border-right: 1px solid #f0f0f0 !important; 
+        border-right: 2px solid #F0F2F6 !important; 
     }
     [data-testid="stSidebar"] * { color: #31333F !important; }
 
-    /* KONUŞMA BALONLARI */
+    /* KONUŞMA BALONLARI (MODERN TASARIM) */
     .stChatMessage {
-        border-radius: 18px !important;
-        padding: 12px 18px !important;
-        margin-bottom: 12px !important;
-        max-width: 88% !important;
+        border-radius: 20px !important;
+        padding: 15px 20px !important;
+        margin-bottom: 15px !important;
+        max-width: 85% !important;
+        font-family: 'Inter', sans-serif;
     }
     
-    /* KULLANICI MESAJI (MAVİ) */
+    /* KULLANICI MESAJI (PROFESYONEL MAVİ) */
     [data-testid="stChatMessageUser"] {
-        background-color: #E3F2FD !important;
-        border: 1px solid #BBDEFB !important;
-        color: #0D47A1 !important;
+        background-color: #EBF5FF !important;
+        border: 1px solid #D1E9FF !important;
+        color: #0052CC !important;
     }
 
-    /* AI MESAJI (GRİ) */
+    /* AI MESAJI (STİLİZE GRİ) */
     [data-testid="stChatMessageAssistant"] {
-        background-color: #F8F9FA !important;
-        border: 1px solid #E9ECEF !important;
-        color: #212529 !important;
+        background-color: #F7F9FB !important;
+        border: 1px solid #EDF2F7 !important;
+        color: #2D3748 !important;
     }
 
-    /* ÇOK DETAYLI YASAL HAKLAR KUTUSU */
-    .rights-detail {
-        background-color: #fdfdfd;
-        border: 1px solid #e0e0e0;
-        border-left: 8px solid #1976D2;
+    /* DETAYLI YASAL HAKLAR PANELİ */
+    .legal-container {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-left: 10px solid #1976D2;
         padding: 30px;
-        border-radius: 15px;
-        font-family: 'Segoe UI', sans-serif;
-        line-height: 1.6;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
 
-    .footer-text {
+    /* ALT İMZA TASARIMI */
+    .footer-stamp {
         text-align: center;
-        font-size: 11px;
-        color: #a0a0a0;
-        margin-top: 40px;
-        padding-bottom: 20px;
+        font-size: 13px;
+        color: #A0AEC0;
+        padding: 20px;
+        letter-spacing: 1px;
     }
+    
+    /* INPUT ALANI DÜZELTME */
+    .stChatInputContainer { background-color: #FFFFFF !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -76,105 +94,104 @@ st.markdown("""
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- 4. SOL MENÜ (KUTAY PANEL) ---
+# --- 4. SOL MENÜ (PROFESYONEL KUTAY PANEL) ---
 with st.sidebar:
     st.markdown("## ⚙️ KUTAY PANEL")
-    st.write("Yusuf Tatlıcak Resmi Yazılımı")
+    st.caption("Yusuf Tatlıcak Enterprise Edition")
     st.markdown("---")
     
-    page = st.radio("Sistem Menüsü:", ["💬 Sohbet", "🛠️ Ayarlar & Haklarım", "📜 Geçmiş"])
+    page = st.radio("Sistem Katmanları:", ["💬 Ana Terminal", "⚖️ Yasal Haklar & Lisans", "📜 Arşiv"])
     
     st.markdown("---")
     st.subheader("🛡️ Siber Güvenlik")
-    st.link_button("KUTAY KORUMA'YA GİT", "https://kutay-koruma-bgtossczrvlrpihvhmof2f.streamlit.app")
+    st.link_button("KUTAY KORUMA HUB", "https://kutay-koruma-bgtossczrvlrpihvhmof2f.streamlit.app")
     
     st.markdown("---")
-    if st.button("🗑️ Belleği Temizle"):
+    if st.button("🗑️ Verileri Temizle"):
         st.session_state.messages = []
         st.rerun()
 
 # --- 5. ANA SAYFA FONKSİYONLARI ---
 
-if page == "💬 Sohbet":
+if page == "💬 Ana Terminal":
     st.title("🤖 KUTAY AI")
-    st.caption("Yusuf Tatlıcak Tarafından Geliştirilen Akıllı Asistan")
+    st.caption("Yusuf Tatlıcak Tarafından Geliştirilen Yüksek Performanslı Asistan")
 
-    # Geçmişi Göster
+    # Sohbet Geçmişi Render
     for message in st.session_state.messages:
         avatar = "👤" if message["role"] == "user" else "💎"
         with st.chat_message(message["role"], avatar=avatar):
             st.markdown(message["content"])
 
-    # Mesaj Girişi
-    if prompt := st.chat_input("Yusuf'un yapay zekasına bir şeyler yaz..."):
+    # Mesaj Giriş Mekanizması
+    if prompt := st.chat_input("Yusuf'un sistemine talimat ver..."):
         with st.chat_message("user", avatar="👤"):
             st.markdown(prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
 
         with st.chat_message("assistant", avatar="💎"):
-            msg_area = st.empty()
-            full_res = ""
-            try:
-                # Yapay Zeka Yanıt Üretimi
-                response = model.generate_content(prompt)
+            msg_placeholder = st.empty()
+            full_response = ""
+            
+            if isinstance(model, str): # Model yükleme hatası kontrolü
+                st.error(model)
+            else:
+                try:
+                    # YANIT ÜRETİMİ
+                    response = model.generate_content(prompt)
+                    
+                    # Yazma Efekti (Typewriter Effect)
+                    for word in response.text.split():
+                        full_res = full_response + word + " "
+                        full_response = full_res
+                        time.sleep(0.04)
+                        msg_placeholder.markdown(full_response + "▌")
+                    
+                    msg_placeholder.markdown(full_response)
+                    st.session_state.messages.append({"role": "assistant", "content": full_response})
                 
-                # Akıcı Yazım Efekti
-                for chunk in response.text.split():
-                    full_res += chunk + " "
-                    time.sleep(0.04)
-                    msg_area.markdown(full_res + "▌")
-                
-                msg_area.markdown(full_res)
-                st.session_state.messages.append({"role": "assistant", "content": full_res})
-                
-            except Exception as e:
-                # HATALARI PROFESYONELCE YÖNET
-                if "429" in str(e):
-                    st.warning("⚠️ **Sistem Notu:** Yusuf, kota doldu. 1 dakika sonra her şey düzelecek.")
-                else:
-                    st.error(f"🚨 **Sistem Hatası:** {e}")
+                except Exception as e:
+                    # KRİTİK HATA YÖNETİMİ
+                    error_txt = str(e)
+                    if "429" in error_txt:
+                        st.warning("⚠️ **HIZ SINIRI:** Yusuf, sistem çok yoğun. Lütfen 30 saniye sonra tekrar dene.")
+                    else:
+                        st.error("🚨 **SİSTEM KRİTİK:** Model bağlantısı kurulamadı. Lütfen API anahtarını veya internet bağlantını kontrol et.")
 
-    st.markdown('<div class="footer-text">© 2026 Yusuf Tatlıcak | Tüm Hakları Saklıdır.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer-stamp">© 2026 Yusuf Tatlıcak Enterprise | Tüm Hakları Uluslararası Kanunlarla Saklıdır.</div>', unsafe_allow_html=True)
 
-elif page == "🛠️ Ayarlar & Haklarım":
-    st.title("🛡️ Yasal Haklar, Lisans ve Mülkiyet")
+elif page == "⚖️ Yasal Haklar & Lisans":
+    st.title("⚖️ Mülkiyet ve Yasal Bildiriler")
     
-    # ÇOK DETAYLI VE UZUN HAKLAR BÖLÜMÜ
     st.markdown("""
-    <div class="rights-detail">
-        <h2 style="color:#1976D2; margin-top:0;">📜 Resmi Yazılım Lisans Sözleşmesi</h2>
-        <p>Bu yapay zeka yazılımı (<b>KUTAY AI v5.6</b>), tüm fikri ve sınai hakları saklı kalmak kaydıyla münhasıran <b>Yusuf Tatlıcak</b> tarafından tasarlanmış ve kodlanmıştır.</p>
+    <div class="legal-container">
+        <h2 style="color:#1976D2; margin-top:0;">📜 Resmi Lisans Bildirisi</h2>
+        <p><b>KUTAY AI v6.0</b> yazılımının tüm fikri mülkiyet, tasarım ve uygulama hakları münhasıran <b>Yusuf Tatlıcak</b> şahsına aittir.</p>
         
-        <h3>1. Fikri Mülkiyet ve Telif Hakları</h3>
-        <p>Uygulamanın kaynak kodları, arayüz tasarımı (UI/UX), veri işleme algoritmaları ve "KUTAY AI" markası uluslararası telif hakları yasalarıyla korunmaktadır. Yazılımın her bir satırı Yusuf Tatlıcak Cyber Security Lab bünyesinde tescillenmiştir.</p>
+        <h3>1. Yazılım Mülkiyeti</h3>
+        <p>Bu uygulama; özel Python algoritmaları, CSS stil yapılandırmaları ve Google Gemini Pro entegrasyonu kullanılarak Yusuf Tatlıcak tarafından inşa edilmiştir. Kaynak kodlarının tamamı Yusuf Tatlıcak'ın mülkiyetindedir.</p>
 
-        <h3>2. Kullanım Koşulları ve Yasaklar</h3>
-        <p>Aşağıdaki eylemlerin gerçekleştirilmesi yasal takibat sebebidir:</p>
+        <h3>2. Yasaklar ve Kısıtlamalar</h3>
         <ul>
-            <li>Yazılımın "Reverse Engineering" (Tersine Mühendislik) yöntemiyle kodlarının açılması.</li>
-            <li>Kaynak kodlarının Yusuf Tatlıcak'ın yazılı izni olmadan GitHub veya diğer platformlarda paylaşılması.</li>
-            <li>Yazılım isminin değiştirilerek "kendi yapımım" şeklinde sunulması.</li>
+            <li><b>Kopyalama:</b> Yazılımın herhangi bir parçasının izinsiz kopyalanması ve başka isimlerle yayınlanması yasaktır.</li>
+            <li><b>Tersine Mühendislik:</b> Kod yapısının analiz edilmesi veya "decompile" edilmesi kesinlikle yasaktır.</li>
+            <li><b>Marka İhlali:</b> "KUTAY AI" ve "KUTAY PANEL" markalarının Yusuf Tatlıcak dışındaki kişilerce ticari amaçla kullanılması yasaktır.</li>
         </ul>
 
-        <h3>3. Teknoloji ve Model Bilgisi</h3>
-        <p>Bu sistem, Google Gemini altyapısı üzerine inşa edilmiş <b>KUTAY 1.5 FLASH</b> özel optimizasyon modelini kullanmaktadır.</p>
+        <h3>3. Teknik Altyapı</h3>
+        <p>Sistem, <b>KUTAY 1.5 FLASH</b> motoru ile çalışmaktadır. Bu motor, saniyede binlerce parametreyi işleyebilen özel bir mimariye sahiptir.</p>
         
-        <p style="background-color: #e8f5e9; padding: 10px; border-radius: 5px; color: #2e7d32; font-weight: bold; text-align: center;">
-            ⚖️ 2026 Yusuf Tatlıcak - Tüm Hakları Kanunlar Çerçevesinde Saklıdır.
+        <p style="background-color: #e3f2fd; padding: 15px; border-radius: 8px; color: #0d47a1; font-weight: bold; text-align: center; border: 1px solid #bbdefb;">
+            🛡️ 2026 - Yusuf Tatlıcak Cyber Security Lab Tarafından Korunmaktadır.
         </p>
     </div>
     """, unsafe_allow_html=True)
-    
-    st.divider()
-    st.write("✅ **Model İsmi:** KUTAY 1.5 FLASH")
-    st.write("✅ **Lisans Sahibi:** Yusuf Tatlıcak")
-    st.success("Sistem Yusuf Tatlıcak için %100 kararlı hale getirildi.")
 
-elif page == "📜 Geçmiş":
-    st.title("📜 Konuşma Geçmişi")
+elif page == "📜 Arşiv":
+    st.title("📜 Sistem Arşivi")
     if not st.session_state.messages:
-        st.info("Henüz bir kayıt yok.")
+        st.info("Sistem belleği şu an boş.")
     else:
         for m in st.session_state.messages:
-            lbl = "Yusuf" if m["role"] == "user" else "KUTAY AI"
-            st.text_area(f"{lbl}:", value=m["content"], height=80, disabled=True)
+            lbl = "User" if m["role"] == "user" else "KUTAY AI"
+            st.text_area(f"Kaynak: {lbl}", value=m["content"], height=100, disabled=True)
