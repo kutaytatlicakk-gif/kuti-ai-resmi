@@ -7,7 +7,7 @@ from datetime import datetime
 # --- 1. MARKA VE TASARIM AYARLARI ---
 st.set_page_config(page_title="KUTAY AI", page_icon="💎", layout="wide")
 
-# CSS: Su mavisi mesaj balonları ve beyaz tema
+# CSS: Su mavisi mesaj balonları ve profesyonel görünüm
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; color: #1E1E1E; }
@@ -15,11 +15,11 @@ st.markdown("""
     
     /* SU MAVİSİ MESAJ BALONLARI */
     [data-testid="stChatMessage"] { 
-        background-color: #E3F2FD !important; /* Su Mavisi Tonu */
+        background-color: #E3F2FD !important; 
         border-radius: 15px; 
         margin-bottom: 10px; 
         color: #1E1E1E; 
-        border: 1px solid #BBDEFB; /* Hafif belirgin kenarlık */
+        border: 1px solid #BBDEFB;
     }
     
     .stButton>button { width: 100%; border-radius: 10px; background-color: #FFFFFF; color: #1E1E1E; border: 1px solid #D1D1D1; }
@@ -65,7 +65,7 @@ def ai_pp_getir():
     if os.path.exists("ai_diamond.png"): return "ai_diamond.png"
     return "💎"
 
-# --- 5. SOL PANEL (KONU BAŞLIKLI GEÇMİŞ) ---
+# --- 5. SOL PANEL (NAVİGASYON) ---
 with st.sidebar:
     ai_p = ai_pp_getir()
     if os.path.exists(ai_p) and ai_p != "💎":
@@ -112,7 +112,7 @@ if secim == "💬 Sohbet":
         with st.chat_message(m["role"], avatar=user_p if m["role"] == "user" else ai_p):
             st.markdown(m["content"])
 
-    if soru := st.chat_input("Bir şeyler yaz..."):
+    if soru := st.chat_input("Buraya yazın..."):
         st.session_state.mesajlar.append({"role": "user", "content": soru})
         with st.chat_message("user", avatar=user_p):
             st.markdown(soru)
@@ -131,11 +131,33 @@ if secim == "💬 Sohbet":
 elif secim == "⚙️ Ayarlar":
     st.title("⚙️ Sistem Ayarları")
     st.write(f"**Yazılım Sahibi:** Yusuf Tatlıcak")
-    st.write(f"**Sürüm:** v23.0 Sapphire Edition")
+    st.write(f"**Güncel Sürüm:** v24.0 Diamond Shield")
     if st.button("🗑️ Tüm Hafızayı Sil"):
         for f in os.listdir(KAYIT_YOLU): os.remove(os.path.join(KAYIT_YOLU, f))
         st.success("Tüm geçmiş temizlendi!")
 
 elif secim == "⚖️ Haklar":
-    st.title("⚖️ Kullanım Hakları")
-    st.info("Bu proje tamamen Yusuf Tatlıcak'a aittir. © 2026")
+    st.title("⚖️ Kullanım ve Lisans Hakları")
+    st.warning("Bu yazılımın tüm fikri ve sınai hakları Yusuf Tatlıcak'a aittir.")
+    
+    st.markdown("""
+    ### 🛡️ KUTAY AI Yazılım Sözleşmesi
+    
+    **1. Fikri Mülkiyet:**
+    Bu yazılımın kaynak kodları, arayüz tasarımı, logo kullanımı ve "KUTAY" markası tamamen **Yusuf Tatlıcak** adına tescillidir. İzinsiz kopyalanamaz veya çoğaltılamaz.
+    
+    **2. Kullanım Şartları:**
+    Yazılım, kullanıcıya sadece kişisel siber asistanlık amacıyla sunulmuştur. Kodların bir kısmının veya tamamının, geliştirici ismi değiştirilerek ("rebranding") başka platformlarda yayınlanması kesinlikle yasaktır.
+    
+    **3. Veri Güvenliği:**
+    Uygulama içerisinde paylaşılan tüm veriler yerel olarak cihazınızda ve Streamlit Cloud güvenliğinde tutulur. API anahtarı güvenliği geliştirici tarafından sağlanan "Secrets" protokolü ile korunmaktadır.
+    
+    **4. Sorumluluk Reddi:**
+    KUTAY AI, Google Gemini altyapısını kullanarak yanıt üretir. Üretilen yanıtların doğruluğu ve kullanımı ile ilgili tüm sorumluluk son kullanıcıya aittir. Yazılım, herhangi bir hatalı bilgi için yasal sorumluluk kabul etmez.
+    
+    **5. Geliştirici Hakları:**
+    Yusuf Tatlıcak, yazılımın gelecekteki sürümlerinde özellik ekleme, çıkarma veya lisans modelini değiştirme hakkını saklı tutar.
+    
+    ---
+    **© 2026 Yusuf Tatlıcak Software. Tüm Hakları Saklıdır.**
+    """)
