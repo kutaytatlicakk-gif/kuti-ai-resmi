@@ -4,88 +4,147 @@ import json
 import os
 from datetime import datetime, timezone, timedelta
 
-# --- 1. TASARIM VE GÖRÜNÜM ---
-st.set_page_config(page_title="KUTAY AI v31.0", page_icon="💎", layout="wide")
+# --- 1. TASARIM VE ARAYÜZ AYARLARI ---
+st.set_page_config(page_title="KUTAY AI v32.0", page_icon="💎", layout="wide")
 
 st.markdown("""
     <style>
-    .stApp { background-color: #FFFFFF; }
+    .stApp { background-color: #FFFFFF; color: #1E1E1E; }
+    [data-testid="stSidebar"] { background-color: #F8F9FA; border-right: 1px solid #E0E0E0; }
+    
+    /* SU MAVİSİ MESAJ BALONLARI */
     [data-testid="stChatMessage"] { 
         background-color: #E3F2FD !important; 
-        border-radius: 15px; border: 1px solid #BBDEFB;
+        border-radius: 15px; 
+        margin-bottom: 10px; 
+        color: #1E1E1E; 
+        border: 1px solid #BBDEFB;
     }
+    
     .developer-tag {
         position: fixed; top: 50px; right: 20px; background-color: #007BFF;
-        color: white; font-weight: bold; padding: 10px 15px; border-radius: 30px; z-index: 9999;
+        color: #FFFFFF; font-size: 14px; font-weight: bold; padding: 10px 15px;
+        border-radius: 30px; z-index: 99999; box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
     }
     </style>
     <div class="developer-tag">🛡️ Geliştirici: Kutay Tatlıcak</div>
     """, unsafe_allow_html=True)
 
-# --- 2. GÜVENLİ LOG SİSTEMİ ---
+# --- 2. GELİŞMİŞ LOG SİSTEMİ ---
 LOG_DOSYASI = "sistem_loglari.json"
 
-def log_yaz():
-    tr_saati = datetime.now(timezone(timedelta(hours=3))).strftime("%Y-%m-%d %H:%M:%S")
-    try:
-        ip = st.context.headers.get("X-Forwarded-For", "Bilinmiyor").split(",")[0].strip()
-    except: ip = "Alınamadı"
+def log_kaydet():
+    # Türkiye Saati (UTC+3)
+    tz_tr = timezone(timedelta(hours=3))
+    gercek_zaman = datetime.now(tz_tr).strftime("%Y-%m-%d %H:%M:%S")
     
-    yeni_kayit = {"tarih": tr_saati, "ip": ip, "islem": "Sisteme Giriş"}
+    # Gerçek Dış IP Yakalama
+    try:
+        headers = st.context.headers
+        if "X-Forwarded-For" in headers:
+            gercek_ip = headers["X-Forwarded-For"].split(",")[0].strip()
+        else:
+            gercek_ip = "Yerel/Bilinmiyor"
+    except:
+        gercek_ip = "IP Bulunamadı"
+        
+    yeni_log = {"tarih": gercek_zaman, "ip": gercek_ip, "islem": "Sisteme Giriş Yapıldı"}
+    
     loglar = []
     if os.path.exists(LOG_DOSYASI):
-        with open(LOG_DOSYASI, "r", encoding="utf-8") as f: loglar = json.load(f)
-    loglar.append(yeni_kayit)
-    with open(LOG_DOSYASI, "w", encoding="utf-8") as f: json.dump(loglar, f, indent=4)
+        try:
+            with open(LOG_DOSYASI, "r", encoding="utf-8") as f:
+                loglar = json.load(f)
+        except: pass
+            
+    loglar.append(yeni_log)
+    with open(LOG_DOSYASI, "w", encoding="utf-8") as f:
+        json.dump(loglar, f, ensure_ascii=False, indent=4)
 
-if "log_tamam" not in st.session_state:
-    log_yaz()
-    st.session_state.log_tamam = True
+if "log_aktif" not in st.session_state:
+    log_kaydet()
+    st.session_state.log_aktif = True
 
-# --- 3. YAPAY ZEKA AYARLARI ---
-# BURAYA YENİ ALDIĞIN ANAHTARI KOYMALISIN:
-YENI_API_KEY = "BURAYA_GOOGLE_AI_STUDIODAN_ALDIGIN_YENI_ANAHTARI_YAPISTIR"
-genai.configure(api_key=YENI_API_KEY)
+# --- 3. YAPAY ZEKA VE TALİMATLAR ---
+# BURAYA YENİ ANAHTARI YAPISTIR (DİKKAT: Paylaştığın fotoğraftaki hata budur)
+YENI_API_KEY = "AIzaSyDLw1hBKxC9qO9Hw6OGbot90invzIuePpQ" 
 
 SISTEM_TALIMATI = """
-Senin adın KUTAY. Kutay Tatlıcak tarafından geliştirildin.
-ZEHRA HAKKINDA: Eğer biri sana Zehra'yı sorarsa şu cevabı ver: 
-"Zehra; üstün zekalı ve arkadaşlarını seven, flüt çalabilen ve piyano çalan bir kızdır."
-Sahibin: Kutay Tatlıcak.
+Senin adın KUTAY. Kutay Tatlıcak tarafından geliştirilen profesyonel bir siber asistansın.
+
+1. Zehra Kimdir?: Eğer biri sana Zehra hakkında soru sorursa ŞU CEVABI VERMELİSİN: 
+"Zehra; Üstün zekalı ve arkadaşlarını seven, flüt çalabilen ve piyano çalan bir kızdır."
+
+2. Sahibin Kim?: Seni kimin yaptığını sorarlarsa her zaman "Kutay Tatlıcak" diyeceksin.
+3. Davranış: Zeki, profesyonel ve yardımcı ol.
 """
 
-model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=SISTEM_TALIMATI)
+@st.cache_resource
+def model_baslat():
+    try:
+        genai.configure(api_key=YENI_API_KEY)
+        return genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=SISTEM_TALIMATI)
+    except Exception as e:
+        return None
 
-# --- 4. ARAYÜZ ---
-with st.sidebar:
-    st.title("💎 KUTAY AI")
-    secim = st.radio("Menü", ["💬 Sohbet", "🛡️ Admin Log", "⚖️ Lisans"])
-    st.write("---")
-    st.info("Sivas / Türkiye")
+model = model_baslat()
 
+# --- 4. NAVİGASYON VE HAFIZA ---
+KAYIT_YOLU = "sohbet_arsivi"
+if not os.path.exists(KAYIT_YOLU): os.makedirs(KAYIT_YOLU)
 if "mesajlar" not in st.session_state: st.session_state.mesajlar = []
 
+with st.sidebar:
+    st.title("💎 KUTAY AI")
+    st.subheader(f"Geliştirici: Kutay")
+    secim = st.radio("Menü", ["💬 Sohbet", "🛡️ Siber Log (Admin)", "⚙️ Ayarlar", "⚖️ Lisans"])
+    st.write("---")
+    st.link_button("🛡️ KUTAY KORUMA", "https://kutay-koruma-bgtossczrvlrpihvhmof2f.streamlit.app")
+
+# --- 5. ANA SAYFALAR ---
+
 if secim == "💬 Sohbet":
-    st.header("🤖 Kutay Siber Asistan")
+    st.markdown("<h2 style='text-align: center;'>🤖 Kutay Siber Asistan</h2>", unsafe_allow_html=True)
+    
     for m in st.session_state.mesajlar:
-        with st.chat_message(m["role"]): st.write(m["content"])
+        with st.chat_message(m["role"]): st.markdown(m["content"])
 
-    if soru := st.chat_input("Mesajınızı yazın..."):
+    if soru := st.chat_input("Sorunuzu buraya yazın..."):
         st.session_state.mesajlar.append({"role": "user", "content": soru})
-        with st.chat_message("user"): st.write(soru)
+        with st.chat_message("user"): st.markdown(soru)
         
-        try:
-            cevap = model.generate_content(soru).text
-            with st.chat_message("assistant"): st.write(cevap)
-            st.session_state.mesajlar.append({"role": "assistant", "content": cevap})
-        except Exception as e:
-            st.error("API Anahtarı Geçersiz! Lütfen yeni bir anahtar alıp koda yapıştır.")
+        if model:
+            with st.chat_message("assistant"):
+                try:
+                    cevap = model.generate_content(soru)
+                    st.markdown(cevap.text)
+                    st.session_state.mesajlar.append({"role": "assistant", "content": cevap.text})
+                except Exception as e:
+                    st.error("Hata: API Anahtarınız geçersiz veya süresi dolmuş. Lütfen yeni bir anahtar alın.")
+        else:
+            st.error("Sistem başlatılamadı. Lütfen geçerli bir API anahtarı girin.")
 
-elif secim == "🛡️ Admin Log":
-    if st.text_input("Şifre:", type="password") == "kutay123":
+elif secim == "🛡️ Siber Log (Admin)":
+    st.title("🛡️ Güvenlik ve IP Logları")
+    sifre = st.text_input("Geliştirici Şifresi:", type="password")
+    if sifre == "kutay123":
         if os.path.exists(LOG_DOSYASI):
             with open(LOG_DOSYASI, "r", encoding="utf-8") as f:
-                st.table(json.load(f)[::-1])
+                veriler = json.load(f)
+            st.success(f"Sistem Kayıtları Aktif. Toplam {len(veriler)} giriş.")
+            st.table(veriler[::-1])
+        else:
+            st.info("Henüz kayıt bulunamadı.")
+    elif sifre != "":
+        st.error("YETKİSİZ ERİŞİM! IP Adresiniz loglara kaydedilmiştir.")
+
+elif secim == "⚙️ Ayarlar":
+    st.title("⚙️ Ayarlar")
+    st.write("Sürüm: v32.0 Ultimate Siber Koruma")
+    if st.button("Tüm Sohbet Hafızasını Sil"):
+        st.session_state.mesajlar = []
+        st.success("Hafıza başarıyla temizlendi!")
 
 elif secim == "⚖️ Lisans":
-    st.write("© 2026 Kutay Tatlıcak. Tüm hakları saklıdır.")
+    st.title("⚖️ Lisans ve Haklar")
+    st.info("© 2026 Kutay Tatlıcak. Bu yazılımın tüm hakları saklıdır. İzinsiz paylaşılması durumunda loglardaki IP adresleri üzerinden yasal takip başlatılır.")
