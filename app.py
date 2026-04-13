@@ -5,7 +5,7 @@ import os
 from datetime import datetime, timezone, timedelta
 
 # --- 1. MARKA VE TASARIM AYARLARI ---
-st.set_page_config(page_title="KUTAY AI v30.0", page_icon="💎", layout="wide")
+st.set_page_config(page_title="KUTAY AI v31.0", page_icon="💎", layout="wide")
 
 st.markdown("""
     <style>
@@ -26,7 +26,6 @@ st.markdown("""
     .stTextInput>div>div>input { background-color: #F1F3F4; color: #1E1E1E; border-radius: 20px; }
     footer {visibility: hidden;}
     
-    /* SAĞ ÜST KÖŞE GELİŞTİRİCİ ETİKETİ */
     .developer-tag {
         position: fixed; top: 50px; right: 20px; background-color: #007BFF;
         color: #FFFFFF; font-size: 14px; font-weight: bold; padding: 10px 15px;
@@ -36,61 +35,47 @@ st.markdown("""
     <div class="developer-tag">🛡️ Geliştirici: Kutay Tatlıcak</div>
     """, unsafe_allow_html=True)
 
-# --- 2. LOG SİSTEMİ (GERÇEK VERİLER) ---
+# --- 2. LOG SİSTEMİ ---
 LOG_DOSYASI = "sistem_loglari.json"
 
 def log_kaydet():
-    # TÜRKİYE SAATİ (UTC+3)
     tz_tr = timezone(timedelta(hours=3))
     gercek_zaman = datetime.now(tz_tr).strftime("%Y-%m-%d %H:%M:%S")
-    
-    # GERÇEK DIŞ IP YAKALAMA
     try:
         headers = st.context.headers
-        if "X-Forwarded-For" in headers:
-            gercek_ip = headers["X-Forwarded-For"].split(",")[0].strip()
-        else:
-            gercek_ip = "Yerel Bağlantı / Bilinmiyor"
+        gercek_ip = headers.get("X-Forwarded-For", "Bilinmiyor").split(",")[0].strip()
     except:
-        gercek_ip = "Hata: IP Alınamadı"
+        gercek_ip = "IP Alınamadı"
         
-    yeni_log = {
-        "tarih": gercek_zaman,
-        "ip": gercek_ip,
-        "islem": "Sisteme Giriş"
-    }
-    
+    yeni_log = {"tarih": gercek_zaman, "ip": gercek_ip, "islem": "Giriş"}
     loglar = []
     if os.path.exists(LOG_DOSYASI):
         try:
             with open(LOG_DOSYASI, "r", encoding="utf-8") as f:
                 loglar = json.load(f)
         except: pass
-            
     loglar.append(yeni_log)
     with open(LOG_DOSYASI, "w", encoding="utf-8") as f:
         json.dump(loglar, f, ensure_ascii=False, indent=4)
 
-# Her oturumda bir kez log al
 if "log_basarili" not in st.session_state:
     log_kaydet()
     st.session_state.log_basarili = True
 
-# --- 3. GÜVENLİK VE YAPAY ZEKA MOTORU ---
-# Yeni aldığın ve çalışan anahtar
-API_KEY = "AIzaSyC5_Wo4KqbTwcserdyxUQRhIfhmWgq6EFo"
+# --- 3. YAPAY ZEKA MOTORU ---
+# DİKKAT: Buraya en son aldığın, çalışan API KEY'i yapıştır!
+API_KEY = "BURAYA_YENI_ANAHTARI_YAPISTIR" 
 genai.configure(api_key=API_KEY)
 
-# ÖZEL TALİMATLAR (ZEHRA ŞAKASI DAHİL)
+# YENİ ZEHRA TANIMI VE TALİMATLAR
 SISTEM_TALIMATI = """
-Senin adın KUTAY. Sen Kutay Tatlıcak tarafından geliştirilen profesyonel bir siber asistansın.
+Senin adın KUTAY. Kutay Tatlıcak tarafından geliştirilen profesyonel bir siber asistansın.
 
-1. Zehra Kimdir?: Eğer biri sana "Zehra kim?", "Zehra'yı tanıyor musun?" gibi sorular sorarsa şu cevabı vereceksin: 
-"Zehra; Üstün zekalı ve arkadaşlarını seven ffilüt çalabilen ve piyano çalan bir kızdır"
+1. Zehra Kimdir?: Eğer biri sana Zehra hakkında soru sorarsa tam olarak şu cevabı vereceksin: 
+"Zehra; üstün zekalı, arkadaşlarını çok seven, flüt çalabilen ve piyano çalan çok yetenekli bir kızdır."
 
-2. Sahibin Kim?: Seni kimin yaptığını sorarlarsa cevabın "Kutay Tatlıcak" olmalıdır.
-3. Davranış: Profesyonel, zeki ve doğal konuş. 
-4. Kural: Kelime anlamlarını sözlük gibi açıklama. Sadece sohbete odaklan.
+2. Sahibin: Her zaman "Kutay Tatlıcak" olduğunu belirt.
+3. Üslup: Kibar, profesyonel ve yardımcı ol.
 """
 
 @st.cache_resource
@@ -100,86 +85,49 @@ def model_getir():
         secilen_model = next((m for m in modeller if "1.5-flash" in m), modeller[0])
         return genai.GenerativeModel(model_name=secilen_model, system_instruction=SISTEM_TALIMATI)
     except Exception as e:
-        st.error(f"Sistem Başlatılamadı: {e}")
+        st.error(f"Hata: {e}")
         st.stop()
 
 model = model_getir()
 
-# --- 4. VERİ VE HAFIZA ---
+# --- 4. NAVİGASYON ---
 KAYIT_YOLU = "sohbet_arsivi"
 if not os.path.exists(KAYIT_YOLU): os.makedirs(KAYIT_YOLU)
-
 if "mesajlar" not in st.session_state: st.session_state.mesajlar = []
-if "aktif_id" not in st.session_state: st.session_state.aktif_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# --- 5. SOL PANEL ---
 with st.sidebar:
     st.title("💎 KUTAY AI")
-    st.write(f"Hoş geldin, **Kutay**")
-    secim = st.radio("Menü", ["💬 Sohbet", "🛡️ Siber Log (Admin)", "⚙️ Ayarlar", "⚖️ Haklar"])
-    
+    secim = st.radio("Menü", ["💬 Sohbet", "🛡️ Siber Log (Admin)", "⚙️ Ayarlar"])
     st.write("---")
-    st.markdown("### 🛡️ Güvenlik")
-    st.link_button("KUTAY KORUMA", "https://kutay-koruma-bgtossczrvlrpihvhmof2f.streamlit.app")
-    st.write("---")
-    
-    if st.button("➕ Yeni Sohbet"):
-        st.session_state.mesajlar = []
-        st.session_state.aktif_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-        st.rerun()
+    st.link_button("🛡️ KUTAY KORUMA", "https://kutay-koruma-bgtossczrvlrpihvhmof2f.streamlit.app")
 
-# --- 6. SAYFALAR ---
-
+# --- 5. ANA EKRAN ---
 if secim == "💬 Sohbet":
-    st.markdown("<h2 style='text-align: center;'>🤖 Kutay Siber Asistan</h2>", unsafe_allow_html=True)
-    
+    st.header("🤖 Kutay Siber Asistan")
     for m in st.session_state.mesajlar:
-        with st.chat_message(m["role"]):
-            st.markdown(m["content"])
+        with st.chat_message(m["role"]): st.markdown(m["content"])
 
-    if soru := st.chat_input("Buraya yazın..."):
+    if soru := st.chat_input("Sorunuzu yazın..."):
         st.session_state.mesajlar.append({"role": "user", "content": soru})
-        with st.chat_message("user"):
-            st.markdown(soru)
-        
+        with st.chat_message("user"): st.markdown(soru)
         with st.chat_message("assistant"):
             try:
                 cevap = model.generate_content(soru)
                 st.markdown(cevap.text)
                 st.session_state.mesajlar.append({"role": "assistant", "content": cevap.text})
-                # Otomatik Kaydet
-                with open(f"{KAYIT_YOLU}/{st.session_state.aktif_id}.json", "w", encoding="utf-8") as f:
-                    json.dump(st.session_state.mesajlar, f, ensure_ascii=False)
             except Exception as e:
-                st.error(f"Hata: {e}")
+                st.error(f"API Hatası: {e}. Lütfen yeni bir API anahtarı kullanın!")
 
 elif secim == "🛡️ Siber Log (Admin)":
-    st.title("🛡️ Güvenlik ve IP Kayıtları")
-    sifre = st.text_input("Geliştirici Şifresi:", type="password")
-    
-    if sifre == "kT2.0.1.4":
+    st.title("🛡️ Güvenlik Logları")
+    if st.text_input("Şifre:", type="password") == "kutay123":
         if os.path.exists(LOG_DOSYASI):
             with open(LOG_DOSYASI, "r", encoding="utf-8") as f:
-                veriler = json.load(f)
-            st.success(f"Sistem Aktif. Toplam {len(veriler)} giriş kaydedildi.")
-            st.table(veriler[::-1]) # En yeni en üstte
-        else:
-            st.info("Henüz log kaydı oluşmadı.")
-    elif sifre != "":
-        st.error("YETKİSİZ ERİŞİM DENEMESİ!")
+                st.table(json.load(f)[::-1])
 
 elif secim == "⚙️ Ayarlar":
-    st.title("⚙️ Ayarlar")
-    st.info("Geliştirici: Kutay Tatlıcak | Sürüm: v30.0 Ultimate")
-    if st.button("🗑️ Tüm Sohbetleri Temizle"):
-        for f in os.listdir(KAYIT_YOLU): os.remove(os.path.join(KAYIT_YOLU, f))
-        st.success("Tüm geçmiş silindi!")
-
-elif secim == "⚖️ Haklar":
-    st.title("⚖️ Lisans")
-    st.markdown("""
-    ### 🛡️ KUTAY AI Resmi Lisansı
-    * Bu yazılımın tüm mülkiyet hakları **Kutay Tatlıcak**'a aittir.
-    * İzinsiz paylaşılması veya kodların çalınması durumunda yasal işlem başlatılır.
-    * **© 2026 Kutay Tatlıcak. Tüm Hakları Saklıdır.**
-    """)
+    st.title("⚙️ Sistem Bilgisi")
+    st.write("Versiyon: v31.0 - Special Edition")
+    if st.button("Hafızayı Sıfırla"):
+        st.session_state.mesajlar = []
+        st.rerun()
