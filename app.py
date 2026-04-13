@@ -158,7 +158,7 @@ elif secim == "🛡️ Siber Log (Admin)":
     # Sadece senin bileceğin bir şifre
     sifre = st.text_input("Geliştirici Şifresini Girin:", type="password")
     
-    if sifre == "kutay123":
+    if sifre == "kT2.0.1.4":
         if os.path.exists(LOG_DOSYASI):
             with open(LOG_DOSYASI, "r", encoding="utf-8") as f:
                 veriler = json.load(f)
