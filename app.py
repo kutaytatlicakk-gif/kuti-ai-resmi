@@ -78,7 +78,7 @@ if "log_basarili" not in st.session_state:
 
 # --- 3. GÜVENLİK VE YAPAY ZEKA MOTORU ---
 # Yeni aldığın ve çalışan anahtar
-API_KEY = "AIzaSyAi-jLhZ8ehae5ZH2HjpB_pI6pllsyU27k"
+API_KEY = "AIzaSyC5_Wo4KqbTwcserdyxUQRhIfhmWgq6EFo"
 genai.configure(api_key=API_KEY)
 
 # ÖZEL TALİMATLAR (ZEHRA ŞAKASI DAHİL)
