@@ -4,8 +4,8 @@ import json
 import os
 from datetime import datetime, timezone, timedelta
 
-# --- 1. TASARIM VE ARAYÜZ AYARLARI ---
-st.set_page_config(page_title="KUTAY AI v32.0", page_icon="💎", layout="wide")
+# --- 1. TASARIM VE MARKA AYARLARI ---
+st.set_page_config(page_title="KUTAY AI v33.0", page_icon="💎", layout="wide")
 
 st.markdown("""
     <style>
@@ -30,25 +30,25 @@ st.markdown("""
     <div class="developer-tag">🛡️ Geliştirici: Kutay Tatlıcak</div>
     """, unsafe_allow_html=True)
 
-# --- 2. GELİŞMİŞ LOG SİSTEMİ ---
+# --- 2. SİBER LOG SİSTEMİ (GERÇEK VERİLER) ---
 LOG_DOSYASI = "sistem_loglari.json"
 
 def log_kaydet():
-    # Türkiye Saati (UTC+3)
+    # Türkiye Saati
     tz_tr = timezone(timedelta(hours=3))
     gercek_zaman = datetime.now(tz_tr).strftime("%Y-%m-%d %H:%M:%S")
     
-    # Gerçek Dış IP Yakalama
+    # Gerçek IP Yakalama
     try:
         headers = st.context.headers
         if "X-Forwarded-For" in headers:
             gercek_ip = headers["X-Forwarded-For"].split(",")[0].strip()
         else:
-            gercek_ip = "Yerel/Bilinmiyor"
+            gercek_ip = "Yerel Bağlantı"
     except:
-        gercek_ip = "IP Bulunamadı"
+        gercek_ip = "IP Alınamadı"
         
-    yeni_log = {"tarih": gercek_zaman, "ip": gercek_ip, "islem": "Sisteme Giriş Yapıldı"}
+    yeni_log = {"tarih": gercek_zaman, "ip": gercek_ip, "islem": "Sisteme Giriş"}
     
     loglar = []
     if os.path.exists(LOG_DOSYASI):
@@ -61,90 +61,59 @@ def log_kaydet():
     with open(LOG_DOSYASI, "w", encoding="utf-8") as f:
         json.dump(loglar, f, ensure_ascii=False, indent=4)
 
-if "log_aktif" not in st.session_state:
+if "log_basarili" not in st.session_state:
     log_kaydet()
-    st.session_state.log_aktif = True
+    st.session_state.log_basarili = True
 
-# --- 3. YAPAY ZEKA VE TALİMATLAR ---
-# BURAYA YENİ ANAHTARI YAPISTIR (DİKKAT: Paylaştığın fotoğraftaki hata budur)
-YENI_API_KEY = "AIzaSyDLw1hBKxC9qO9Hw6OGbot90invzIuePpQ" 
+# --- 3. YAPAY ZEKA VE ZEHRA TANIMI ---
+# Verdiğin yeni anahtarı buraya ekledim:
+API_KEY = "AIzaSyCwI5LB6ynYMudrxNl1JDqqutbUxsizOyI"
 
 SISTEM_TALIMATI = """
 Senin adın KUTAY. Kutay Tatlıcak tarafından geliştirilen profesyonel bir siber asistansın.
 
-1. Zehra Kimdir?: Eğer biri sana Zehra hakkında soru sorursa ŞU CEVABI VERMELİSİN: 
+1. Zehra Kimdir?: Eğer biri sana Zehra hakkında soru sorarsa ŞU CEVABI VERMELİSİN: 
 "Zehra; Üstün zekalı ve arkadaşlarını seven, flüt çalabilen ve piyano çalan bir kızdır."
 
-2. Sahibin Kim?: Seni kimin yaptığını sorarlarsa her zaman "Kutay Tatlıcak" diyeceksin.
-3. Davranış: Zeki, profesyonel ve yardımcı ol.
+2. Sahibin: Kutay Tatlıcak.
+3. Görevin: Siber güvenlik ve genel konularda yardımcı olmak.
 """
 
-@st.cache_resource
-def model_baslat():
-    try:
-        genai.configure(api_key=YENI_API_KEY)
-        return genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=SISTEM_TALIMATI)
-    except Exception as e:
-        return None
-
-model = model_baslat()
-
-# --- 4. NAVİGASYON VE HAFIZA ---
-KAYIT_YOLU = "sohbet_arsivi"
-if not os.path.exists(KAYIT_YOLU): os.makedirs(KAYIT_YOLU)
-if "mesajlar" not in st.session_state: st.session_state.mesajlar = []
-
+# --- 4. ARAYÜZ VE NAVİGASYON ---
 with st.sidebar:
     st.title("💎 KUTAY AI")
-    st.subheader(f"Geliştirici: Kutay")
-    secim = st.radio("Menü", ["💬 Sohbet", "🛡️ Siber Log (Admin)", "⚙️ Ayarlar", "⚖️ Lisans"])
+    secim = st.radio("Menü", ["💬 Sohbet", "🛡️ Siber Log (Admin)", "⚖️ Lisans"])
     st.write("---")
     st.link_button("🛡️ KUTAY KORUMA", "https://kutay-koruma-bgtossczrvlrpihvhmof2f.streamlit.app")
 
-# --- 5. ANA SAYFALAR ---
+if "mesajlar" not in st.session_state: st.session_state.mesajlar = []
 
 if secim == "💬 Sohbet":
-    st.markdown("<h2 style='text-align: center;'>🤖 Kutay Siber Asistan</h2>", unsafe_allow_html=True)
+    st.header("🤖 Kutay Siber Asistan")
     
     for m in st.session_state.mesajlar:
         with st.chat_message(m["role"]): st.markdown(m["content"])
 
-    if soru := st.chat_input("Sorunuzu buraya yazın..."):
+    if soru := st.chat_input("Mesajınızı yazın..."):
         st.session_state.mesajlar.append({"role": "user", "content": soru})
         with st.chat_message("user"): st.markdown(soru)
         
-        if model:
-            with st.chat_message("assistant"):
-                try:
-                    cevap = model.generate_content(soru)
-                    st.markdown(cevap.text)
-                    st.session_state.mesajlar.append({"role": "assistant", "content": cevap.text})
-                except Exception as e:
-                    st.error("Hata: API Anahtarınız geçersiz veya süresi dolmuş. Lütfen yeni bir anahtar alın.")
-        else:
-            st.error("Sistem başlatılamadı. Lütfen geçerli bir API anahtarı girin.")
+        with st.chat_message("assistant"):
+            try:
+                genai.configure(api_key=API_KEY)
+                model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=SISTEM_TALIMATI)
+                cevap = model.generate_content(soru)
+                st.markdown(cevap.text)
+                st.session_state.mesajlar.append({"role": "assistant", "content": cevap.text})
+            except Exception as e:
+                st.error("⚠️ HATA: API Anahtarın geçersiz veya limiti dolmuş olabilir. Lütfen yeni bir anahtar alıp koda yapıştır.")
 
 elif secim == "🛡️ Siber Log (Admin)":
-    st.title("🛡️ Güvenlik ve IP Logları")
-    sifre = st.text_input("Geliştirici Şifresi:", type="password")
-    if sifre == "kutay123":
+    st.title("🛡️ Güvenlik Logları")
+    if st.text_input("Şifre:", type="password") == "kutay123":
         if os.path.exists(LOG_DOSYASI):
             with open(LOG_DOSYASI, "r", encoding="utf-8") as f:
-                veriler = json.load(f)
-            st.success(f"Sistem Kayıtları Aktif. Toplam {len(veriler)} giriş.")
-            st.table(veriler[::-1])
-        else:
-            st.info("Henüz kayıt bulunamadı.")
-    elif sifre != "":
-        st.error("YETKİSİZ ERİŞİM! IP Adresiniz loglara kaydedilmiştir.")
-
-elif secim == "⚙️ Ayarlar":
-    st.title("⚙️ Ayarlar")
-    st.write("Sürüm: v32.0 Ultimate Siber Koruma")
-    if st.button("Tüm Sohbet Hafızasını Sil"):
-        st.session_state.mesajlar = []
-        st.success("Hafıza başarıyla temizlendi!")
+                st.table(json.load(f)[::-1])
 
 elif secim == "⚖️ Lisans":
-    st.title("⚖️ Lisans ve Haklar")
-    st.info("© 2026 Kutay Tatlıcak. Bu yazılımın tüm hakları saklıdır. İzinsiz paylaşılması durumunda loglardaki IP adresleri üzerinden yasal takip başlatılır.")
+    st.info("© 2026 Kutay Tatlıcak.")
